@@ -93,10 +93,56 @@ const initDbHandler = async (req, res) => {
     }
     
     const schema = fs.readFileSync(schemaPath, 'utf8');
+    console.log(`📄 Loading schema from: ${schemaPath}`);
+    console.log(`🗄️  Database type: ${usePostgres ? 'PostgreSQL' : 'SQLite'}`);
     
     if (usePostgres) {
-      // For PostgreSQL, execute the entire schema as-is
-      await dbQuery.exec([schema]);
+      // For PostgreSQL, split into individual statements and execute each one
+      const statements = schema
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
+      
+      console.log(`📝 Executing ${statements.length} SQL statements...`);
+      
+      // Use a client connection for better control
+      const dbModule = await import('./database/db.js');
+      const db = dbModule.default;
+      const client = await db.connect();
+      
+      try {
+        await client.query('BEGIN');
+        
+        for (let i = 0; i < statements.length; i++) {
+          const statement = statements[i];
+          if (statement.length > 0) {
+            try {
+              console.log(`  Executing statement ${i + 1}/${statements.length}...`);
+              await client.query(statement);
+            } catch (error) {
+              // Log but continue for statements that might fail (like ON CONFLICT)
+              if (error.message.includes('already exists') || 
+                  error.message.includes('duplicate') ||
+                  error.message.includes('does not exist')) {
+                console.log(`  ⚠️  Statement ${i + 1} warning (expected): ${error.message}`);
+              } else {
+                console.error(`  ❌ Statement ${i + 1} error:`, error.message);
+                console.error(`  Statement: ${statement.substring(0, 100)}...`);
+                throw error;
+              }
+            }
+          }
+        }
+        
+        await client.query('COMMIT');
+        console.log('✅ All statements executed successfully');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('❌ Transaction rolled back:', error);
+        throw error;
+      } finally {
+        client.release();
+      }
     } else {
       // For SQLite, split into statements
       const statements = schema
@@ -114,6 +160,16 @@ const initDbHandler = async (req, res) => {
           }
         }
       }
+    }
+    
+    // Verify tables were created
+    if (usePostgres) {
+      const result = await db.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public'
+      `);
+      console.log('📊 Tables in database:', result.rows.map(r => r.table_name));
     }
     
     res.json({ success: true, message: 'Database initialized successfully' });
