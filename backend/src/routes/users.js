@@ -7,10 +7,28 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const users = await dbQuery.all('SELECT * FROM users');
+    console.log(`✅ Fetched ${users.length} users`);
     res.json(users);
   } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Failed to fetch users' });
+    console.error('❌ Error fetching users:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
+    
+    // Check if it's a "table doesn't exist" error
+    if (error.message && error.message.includes('does not exist')) {
+      res.status(500).json({ 
+        error: 'Database not initialized. Please visit /api/init-db to initialize the database.',
+        details: error.message
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Failed to fetch users',
+        details: error.message
+      });
+    }
   }
 });
 
