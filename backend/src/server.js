@@ -47,8 +47,15 @@ const initDbHandler = async (req, res) => {
     
     // Use PostgreSQL schema in production, SQLite schema in development
     const usePostgres = process.env.DATABASE_URL && process.env.NODE_ENV === 'production';
-    const schemaFile = usePostgres ? 'schemaPostgres.sql' : 'schema.sql';
-    const schemaPath = path.join(__dirname, '../../database', schemaFile);
+    
+    let schemaPath;
+    if (usePostgres) {
+      // PostgreSQL schema is in src/database/
+      schemaPath = path.join(__dirname, 'database', 'schemaPostgres.sql');
+    } else {
+      // SQLite schema is in backend/database/
+      schemaPath = path.join(__dirname, '../../database', 'schema.sql');
+    }
     
     const schema = fs.readFileSync(schemaPath, 'utf8');
     
