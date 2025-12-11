@@ -95,20 +95,27 @@ const initDbHandler = async (req, res) => {
     const schema = fs.readFileSync(schemaPath, 'utf8');
     console.log(`📄 Loading schema from: ${schemaPath}`);
     console.log(`🗄️  Database type: ${usePostgres ? 'PostgreSQL' : 'SQLite'}`);
+    console.log(`📏 Schema length: ${schema.length} characters`);
     
     if (usePostgres) {
       // For PostgreSQL, split into individual statements and execute each one
-      const statements = schema
+      // Remove comment-only lines first, then split by semicolon
+      const cleanedSchema = schema
+        .split('\n')
+        .filter(line => !line.trim().startsWith('--'))
+        .join('\n');
+      
+      const statements = cleanedSchema
         .split(';')
         .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--'));
+        .filter(s => s.length > 0);
       
-      console.log(`📝 Executing ${statements.length} SQL statements...`);
+      console.log(`📝 Found ${statements.length} SQL statements`);
       
       // Use a client connection for better control
       const dbModule = await import('./database/db.js');
-      const db = dbModule.default;
-      const client = await db.connect();
+      const dbPool = dbModule.default;
+      const client = await dbPool.connect();
       
       try {
         await client.query('BEGIN');
@@ -117,8 +124,9 @@ const initDbHandler = async (req, res) => {
           const statement = statements[i];
           if (statement.length > 0) {
             try {
-              console.log(`  Executing statement ${i + 1}/${statements.length}...`);
+              console.log(`  Executing statement ${i + 1}/${statements.length}: ${statement.substring(0, 50)}...`);
               await client.query(statement);
+              console.log(`  ✅ Statement ${i + 1} completed`);
             } catch (error) {
               // Log but continue for statements that might fail (like ON CONFLICT)
               if (error.message.includes('already exists') || 
@@ -127,7 +135,7 @@ const initDbHandler = async (req, res) => {
                 console.log(`  ⚠️  Statement ${i + 1} warning (expected): ${error.message}`);
               } else {
                 console.error(`  ❌ Statement ${i + 1} error:`, error.message);
-                console.error(`  Statement: ${statement.substring(0, 100)}...`);
+                console.error(`  Full statement:`, statement);
                 throw error;
               }
             }
@@ -136,6 +144,16 @@ const initDbHandler = async (req, res) => {
         
         await client.query('COMMIT');
         console.log('✅ All statements executed successfully');
+        
+        // Verify tables were created
+        const result = await client.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public'
+          ORDER BY table_name
+        `);
+        console.log('📊 Tables in database:', result.rows.map(r => r.table_name).join(', '));
+        
       } catch (error) {
         await client.query('ROLLBACK');
         console.error('❌ Transaction rolled back:', error);
@@ -160,16 +178,6 @@ const initDbHandler = async (req, res) => {
           }
         }
       }
-    }
-    
-    // Verify tables were created
-    if (usePostgres) {
-      const result = await db.query(`
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public'
-      `);
-      console.log('📊 Tables in database:', result.rows.map(r => r.table_name));
     }
     
     res.json({ success: true, message: 'Database initialized successfully' });
