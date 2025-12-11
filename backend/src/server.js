@@ -54,7 +54,8 @@ const initDbHandler = async (req, res) => {
       schemaPath = path.join(__dirname, 'database', 'schemaPostgres.sql');
     } else {
       // SQLite schema is in backend/database/
-      schemaPath = path.join(__dirname, '../../database', 'schema.sql');
+      // Resolve relative to backend root (go up from src/ to backend/)
+      schemaPath = path.resolve(__dirname, '..', 'database', 'schema.sql');
     }
     
     const schema = fs.readFileSync(schemaPath, 'utf8');
