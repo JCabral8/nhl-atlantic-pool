@@ -34,7 +34,8 @@ app.get('/health', (req, res) => {
 });
 
 // Database initialization endpoint (for production setup)
-app.post('/api/init-db', async (req, res) => {
+// Accepts both GET and POST for easy browser access
+const initDbHandler = async (req, res) => {
   try {
     const fs = await import('fs');
     const path = await import('path');
@@ -78,7 +79,10 @@ app.post('/api/init-db', async (req, res) => {
     console.error('Database initialization error:', error);
     res.status(500).json({ error: error.message });
   }
-});
+};
+
+app.get('/api/init-db', initDbHandler);
+app.post('/api/init-db', initDbHandler);
 
 // Error handling
 app.use((err, req, res, next) => {
