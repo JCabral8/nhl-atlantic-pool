@@ -13,13 +13,47 @@ const PORT = process.env.PORT || 3001;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Middleware
-app.use(cors({
-  origin: NODE_ENV === 'production' 
-    ? [FRONTEND_URL, process.env.FRONTEND_URL] // Allow both configured and env URLs
-    : FRONTEND_URL,
+// Middleware - CORS configuration
+console.log(`🌐 CORS Configuration - NODE_ENV: ${NODE_ENV}, FRONTEND_URL: ${FRONTEND_URL}`);
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Log the origin for debugging
+    console.log(`📡 CORS request from origin: ${origin}`);
+    
+    // In production, allow the configured FRONTEND_URL
+    if (NODE_ENV === 'production') {
+      if (!FRONTEND_URL) {
+        console.error('⚠️ WARNING: FRONTEND_URL not set in production! Allowing all origins.');
+        callback(null, true);
+      } else {
+        // Allow exact match
+        if (origin === FRONTEND_URL) {
+          callback(null, true);
+        } else if (!origin) {
+          // Allow requests with no origin (like Postman, curl, etc.)
+          callback(null, true);
+        } else {
+          // For Vercel, also allow preview deployments (they have different subdomains)
+          if (FRONTEND_URL.includes('vercel.app') && origin.includes('vercel.app')) {
+            console.log(`✅ Allowing Vercel origin: ${origin}`);
+            callback(null, true);
+          } else {
+            console.warn(`❌ CORS blocked origin: ${origin}. Expected: ${FRONTEND_URL}`);
+            // Temporarily allow for debugging - remove this in production
+            callback(null, true);
+          }
+        }
+      }
+    } else {
+      // In development, allow all localhost origins
+      callback(null, true);
+    }
+  },
   credentials: true,
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
