@@ -3,8 +3,10 @@ import { Box, Typography } from '@mui/material';
 import { createAvatar } from '@dicebear/core';
 import { avataaars } from '@dicebear/collection';
 import axios from 'axios';
+import { useApp } from '../context/AppContext';
 
 const Avatar = ({ userId, name, size = 120, preferences: externalPreferences }) => {
+  const { API_BASE } = useApp();
   const [savedPreferences, setSavedPreferences] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -43,7 +45,7 @@ const Avatar = ({ userId, name, size = 120, preferences: externalPreferences }) 
     // Make it non-blocking - don't wait for it
     const loadPreferences = async () => {
       try {
-        const response = await axios.get(`http://localhost:3001/api/users/${userId}/avatar`, {
+        const response = await axios.get(`${API_BASE}/users/${userId}/avatar`, {
           timeout: 1000,
         });
         if (response.data && response.data.preferences) {

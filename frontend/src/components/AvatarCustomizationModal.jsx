@@ -17,6 +17,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { createAvatar } from '@dicebear/core';
 import { avataaars } from '@dicebear/collection';
 import axios from 'axios';
+import { useApp } from '../context/AppContext';
 
 const PreviewBox = styled(Paper, {
   shouldForwardProp: (prop) => prop !== 'isSelected',
@@ -33,6 +34,7 @@ const PreviewBox = styled(Paper, {
 }));
 
 const AvatarCustomizationModal = ({ isOpen, onClose, userId, userName, onAvatarUpdate }) => {
+  const { API_BASE } = useApp();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState(null);
@@ -68,7 +70,7 @@ const AvatarCustomizationModal = ({ isOpen, onClose, userId, userName, onAvatarU
   const loadPreferences = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:3001/api/users/${userId}/avatar`);
+      const response = await axios.get(`${API_BASE}/users/${userId}/avatar`);
       const saved = response.data.preferences;
       const defaults = defaultOptions[userId] || defaultOptions.nick;
       setCurrentPreferences(saved || defaults);
@@ -86,7 +88,7 @@ const AvatarCustomizationModal = ({ isOpen, onClose, userId, userName, onAvatarU
   const handleSave = async () => {
     setSaving(true);
     try {
-      await axios.put(`http://localhost:3001/api/users/${userId}/avatar`, {
+      await axios.put(`${API_BASE}/users/${userId}/avatar`, {
         preferences: currentPreferences,
       });
       if (onAvatarUpdate) onAvatarUpdate(currentPreferences);

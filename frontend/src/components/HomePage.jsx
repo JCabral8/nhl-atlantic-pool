@@ -54,7 +54,7 @@ const InfoPaper = styled(Paper)(({ theme }) => ({
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { users, loading, setCurrentUser } = useApp();
+  const { users, loading, setCurrentUser, API_BASE } = useApp();
 
   const handleUserSelect = (user) => {
     setCurrentUser(user);
@@ -121,8 +121,36 @@ const HomePage = () => {
 
         {/* User Cards - Centered */}
         <Box display="flex" justifyContent="center" mb={6}>
-          <Grid container spacing={4} sx={{ maxWidth: '1200px' }}>
-            {users.map((user, index) => (
+          {users.length === 0 && !loading ? (
+            <Paper
+              sx={{
+                p: 4,
+                background: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '16px',
+                textAlign: 'center',
+                maxWidth: '600px',
+              }}
+            >
+              <Typography variant="h5" fontWeight="600" color="error" mb={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
+                ⚠️ Unable to Load Users
+              </Typography>
+              <Typography variant="body1" color="text.secondary" mb={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
+                Could not connect to the backend API.
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'Segoe UI, sans-serif', fontFamily: 'monospace' }}>
+                API URL: {API_BASE}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" mt={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
+                Please check:
+                <br />• The backend is running
+                <br />• The VITE_API_URL environment variable is set correctly
+                <br />• CORS is configured properly
+              </Typography>
+            </Paper>
+          ) : (
+            <Grid container spacing={4} sx={{ maxWidth: '1200px' }}>
+              {users.map((user, index) => (
               <Grid item xs={12} sm={6} md={4} key={user.id}>
                 <StyledCard onClick={() => handleUserSelect(user)}>
                   <CardContent sx={{ p: 4, textAlign: 'center' }}>
@@ -158,7 +186,8 @@ const HomePage = () => {
                 </StyledCard>
               </Grid>
             ))}
-          </Grid>
+            </Grid>
+          )}
         </Box>
 
         {/* Info Section */}

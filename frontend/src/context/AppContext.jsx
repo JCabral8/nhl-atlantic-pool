@@ -18,17 +18,25 @@ export const AppProvider = ({ children }) => {
 
   const fetchInitialData = async () => {
     try {
+      console.log('Fetching data from API:', API_BASE);
       const [usersRes, standingsRes, deadlineRes] = await Promise.all([
         axios.get(`${API_BASE}/users`),
         axios.get(`${API_BASE}/standings`),
         axios.get(`${API_BASE}/deadline`),
       ]);
       
-      setUsers(usersRes.data);
-      setStandings(standingsRes.data);
-      setDeadline(deadlineRes.data);
+      console.log('Users fetched:', usersRes.data);
+      setUsers(usersRes.data || []);
+      setStandings(standingsRes.data || []);
+      setDeadline(deadlineRes.data || null);
     } catch (error) {
       console.error('Error fetching initial data:', error);
+      console.error('API_BASE:', API_BASE);
+      console.error('Error details:', error.response?.data || error.message);
+      // Set empty arrays on error so UI doesn't break
+      setUsers([]);
+      setStandings([]);
+      setDeadline(null);
     } finally {
       setLoading(false);
     }
