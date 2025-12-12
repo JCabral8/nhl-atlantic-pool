@@ -5,7 +5,6 @@ import usersRouter from './routes/users.js';
 import standingsRouter from './routes/standings.js';
 import predictionsRouter from './routes/predictions.js';
 import deadlineRouter from './routes/deadline.js';
-import { startCronScheduler } from './services/cronScheduler.js';
 
 dotenv.config();
 
@@ -329,11 +328,17 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Backend server running on http://localhost:${PORT}`);
   console.log(`📊 Accepting requests from ${FRONTEND_URL}`);
   
-  // Start cron scheduler after server is running
-  startCronScheduler();
+  // Start cron scheduler after server is running (optional - won't break if node-cron isn't installed)
+  try {
+    const { startCronScheduler } = await import('./services/cronScheduler.js');
+    startCronScheduler();
+  } catch (error) {
+    console.warn('⚠️  Could not start cron scheduler (node-cron may not be installed):', error.message);
+    console.warn('   Server will continue running, but automatic standings updates will be disabled.');
+  }
 });
 
