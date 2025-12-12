@@ -215,6 +215,7 @@ const resetDbHandler = async (req, res) => {
   }
 };
 
+app.get('/api/reset', resetDbHandler);
 app.post('/api/reset', resetDbHandler);
 
 // Database migration endpoint
