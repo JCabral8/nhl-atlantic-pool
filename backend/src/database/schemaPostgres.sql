@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   avatar_url TEXT,
-  avatar_preferences TEXT
+  avatar_preferences TEXT,
+  waiver_accepted INTEGER DEFAULT 0
 );
 
 -- Predictions table
@@ -56,6 +57,6 @@ ON CONFLICT DO NOTHING;
 
 -- Insert deadline
 INSERT INTO config (key, value) VALUES
-  ('deadline', '2025-12-13T23:59:59-05:00')
+  ('deadline', '2025-12-15T23:59:59-05:00')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 

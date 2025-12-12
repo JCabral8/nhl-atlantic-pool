@@ -190,6 +190,129 @@ const initDbHandler = async (req, res) => {
 app.get('/api/init-db', initDbHandler);
 app.post('/api/init-db', initDbHandler);
 
+// Reset endpoint - clears all test data (predictions, waivers, avatar preferences)
+const resetDbHandler = async (req, res) => {
+  try {
+    const { dbQuery } = await import('./database/dbAdapter.js');
+    
+    // Delete all predictions
+    await dbQuery.run('DELETE FROM predictions');
+    
+    // Reset waiver acceptances
+    await dbQuery.run('UPDATE users SET waiver_accepted = 0');
+    
+    // Clear avatar preferences
+    await dbQuery.run('UPDATE users SET avatar_preferences = NULL');
+    
+    console.log('✅ Database reset: cleared predictions, waivers, and avatar preferences');
+    res.json({ 
+      success: true, 
+      message: 'Database reset successfully. All predictions, waivers, and avatar preferences have been cleared.' 
+    });
+  } catch (error) {
+    console.error('Database reset error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+app.post('/api/reset', resetDbHandler);
+
+// Database migration endpoint
+const migrateDbHandler = async (req, res) => {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    const { dbQuery } = await import('./database/dbAdapter.js');
+    
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    
+    // Use PostgreSQL migrations in production, SQLite migrations in development
+    const usePostgres = process.env.DATABASE_URL && process.env.NODE_ENV === 'production';
+    
+    let migrationPath;
+    if (usePostgres) {
+      migrationPath = path.join(__dirname, 'database', 'migrations', '001_add_waiver_accepted.sql');
+    } else {
+      migrationPath = path.resolve(__dirname, '..', 'database', 'migrations', '001_add_waiver_accepted.sql');
+    }
+    
+    if (!fs.existsSync(migrationPath)) {
+      return res.status(404).json({ error: 'Migration file not found' });
+    }
+    
+    const migration = fs.readFileSync(migrationPath, 'utf8');
+    console.log(`📄 Running migration from: ${migrationPath}`);
+    
+    if (usePostgres) {
+      // For PostgreSQL, split into statements
+      const statements = migration
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
+      
+      const dbModule = await import('./database/db.js');
+      const dbPool = dbModule.default;
+      const client = await dbPool.connect();
+      
+      try {
+        await client.query('BEGIN');
+        for (const statement of statements) {
+          if (statement.length > 0) {
+            try {
+              await client.query(statement);
+              console.log(`✅ Executed: ${statement.substring(0, 50)}...`);
+            } catch (error) {
+              // Ignore "column already exists" errors
+              if (error.message.includes('already exists') || error.message.includes('duplicate column')) {
+                console.log(`⚠️  Column already exists (skipping): ${error.message}`);
+              } else {
+                throw error;
+              }
+            }
+          }
+        }
+        await client.query('COMMIT');
+        console.log('✅ Migration completed successfully');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+    } else {
+      // For SQLite, execute migration
+      const statements = migration
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
+      
+      for (const statement of statements) {
+        try {
+          await dbQuery.exec([statement]);
+          console.log(`✅ Executed: ${statement.substring(0, 50)}...`);
+        } catch (error) {
+          // Ignore "duplicate column" errors
+          if (error.message.includes('duplicate column') || error.message.includes('already exists')) {
+            console.log(`⚠️  Column already exists (skipping): ${error.message}`);
+          } else {
+            throw error;
+          }
+        }
+      }
+    }
+    
+    res.json({ success: true, message: 'Migration completed successfully' });
+  } catch (error) {
+    console.error('Migration error:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+app.get('/api/migrate', migrateDbHandler);
+app.post('/api/migrate', migrateDbHandler);
+
 // Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);

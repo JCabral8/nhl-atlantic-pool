@@ -80,5 +80,95 @@ router.put('/:id/avatar', async (req, res) => {
   }
 });
 
+// GET /api/users/:id/waiver - Check if user has accepted waiver
+router.get('/:id/waiver', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await dbQuery.get('SELECT waiver_accepted FROM users WHERE id = $1', [id]);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // If column doesn't exist, waiver_accepted will be undefined - treat as not accepted
+    const waiverAccepted = user.waiver_accepted === 1 || user.waiver_accepted === true;
+    res.json({ waiverAccepted });
+  } catch (error) {
+    console.error('Error fetching waiver status:', error);
+    // If column doesn't exist, return false (not accepted)
+    if (error.message && (error.message.includes('no such column') || error.message.includes('does not exist'))) {
+      return res.json({ waiverAccepted: false });
+    }
+    res.status(500).json({ error: 'Failed to fetch waiver status', details: error.message });
+  }
+});
+
+// PUT /api/users/:id/waiver - Accept waiver
+router.put('/:id/waiver', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // First check if column exists, if not, add it
+    try {
+      const result = await dbQuery.run(
+        'UPDATE users SET waiver_accepted = 1 WHERE id = $1',
+        [id]
+      );
+      
+      if (result.changes === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      res.json({ success: true, waiverAccepted: true });
+    } catch (error) {
+      // If column doesn't exist, try to add it and then update
+      if (error.message && (error.message.includes('no such column') || error.message.includes('does not exist'))) {
+        console.log('Waiver column does not exist, attempting to add it...');
+        try {
+          // Try to add the column
+          await dbQuery.run('ALTER TABLE users ADD COLUMN waiver_accepted INTEGER DEFAULT 0');
+          // Now try the update again
+          const result = await dbQuery.run(
+            'UPDATE users SET waiver_accepted = 1 WHERE id = $1',
+            [id]
+          );
+          
+          if (result.changes === 0) {
+            return res.status(404).json({ error: 'User not found' });
+          }
+          
+          res.json({ success: true, waiverAccepted: true, message: 'Column added and waiver accepted' });
+        } catch (migrationError) {
+          // If adding column fails (maybe it's PostgreSQL and needs IF NOT EXISTS)
+          if (migrationError.message && migrationError.message.includes('duplicate column')) {
+            // Column was added, try update again
+            const result = await dbQuery.run(
+              'UPDATE users SET waiver_accepted = 1 WHERE id = $1',
+              [id]
+            );
+            
+            if (result.changes === 0) {
+              return res.status(404).json({ error: 'User not found' });
+            }
+            
+            res.json({ success: true, waiverAccepted: true });
+          } else {
+            throw migrationError;
+          }
+        }
+      } else {
+        throw error;
+      }
+    }
+  } catch (error) {
+    console.error('Error updating waiver status:', error);
+    res.status(500).json({ 
+      error: 'Failed to update waiver status', 
+      details: error.message,
+      hint: 'You may need to run /api/migrate to add the waiver_accepted column'
+    });
+  }
+});
+
 export default router;
 

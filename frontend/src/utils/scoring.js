@@ -3,14 +3,21 @@
  * - Exact position match: 3 points
  * - Off-by-one: 1 point
  * - Off by 2+: 0 points
+ * 
+ * @param {Array} predictions - Array of predictions with {rank, team} where team is team ID
+ * @param {Array} actualStandings - Array of team names in order (1st to 8th)
+ * @param {Function} getTeamName - Function to convert team ID to team name
  */
-export const calculateScore = (predictions, actualStandings) => {
+export const calculateScore = (predictions, actualStandings, getTeamName = null) => {
   let totalScore = 0;
   const breakdown = [];
   
   predictions.forEach(prediction => {
     const predictedRank = prediction.rank;
-    const actualRank = actualStandings.findIndex(team => team === prediction.team) + 1;
+    // prediction.team is a team ID (e.g., 'TB'), but actualStandings contains team names
+    // Convert team ID to team name if getTeamName function is provided
+    const teamIdentifier = getTeamName ? getTeamName(prediction.team) : prediction.team;
+    const actualRank = actualStandings.findIndex(team => team === teamIdentifier) + 1;
     
     let points = 0;
     let status = '';
@@ -30,7 +37,7 @@ export const calculateScore = (predictions, actualStandings) => {
     breakdown.push({
       team: prediction.team,
       predictedRank,
-      actualRank,
+      actualRank: actualRank || 0, // 0 if team not found in standings
       points,
       status,
     });

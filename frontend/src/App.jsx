@@ -4,6 +4,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { AppProvider } from './context/AppContext';
 import HomePage from './components/HomePage';
 import PredictionPage from './components/PredictionPage';
+import ResultsPage from './components/ResultsPage';
 
 const theme = createTheme({
   palette: {
@@ -69,6 +70,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/predict/:userId" element={<PredictionPage />} />
+            <Route path="/results" element={<ResultsPage />} />
           </Routes>
         </BrowserRouter>
       </AppProvider>

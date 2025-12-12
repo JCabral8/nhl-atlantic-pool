@@ -1,6 +1,11 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useDeadline } from '../hooks/useDeadline';
 import Avatar from './Avatar';
+import Header from './Header';
+import WaiverModal from './WaiverModal';
+import axios from 'axios';
 import { 
   Card, 
   CardContent, 
@@ -55,10 +60,63 @@ const InfoPaper = styled(Paper)(({ theme }) => ({
 const HomePage = () => {
   const navigate = useNavigate();
   const { users, loading, setCurrentUser, API_BASE } = useApp();
+  const { isActive } = useDeadline();
+  const [showWaiverModal, setShowWaiverModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
 
-  const handleUserSelect = (user) => {
-    setCurrentUser(user);
-    navigate(`/predict/${user.id}`);
+  // Redirect to results if deadline has passed
+  useEffect(() => {
+    if (!loading && !isActive) {
+      navigate('/results', { replace: true });
+    }
+  }, [loading, isActive, navigate]);
+
+  // Check if user has accepted waiver
+  const checkWaiverStatus = async (userId) => {
+    try {
+      const response = await axios.get(`${API_BASE}/users/${userId}/waiver`);
+      return response.data.waiverAccepted === true;
+    } catch (error) {
+      console.error('Error checking waiver status:', error);
+      return false;
+    }
+  };
+
+  const handleUserSelect = async (user) => {
+    // Check if user has accepted waiver
+    const hasAccepted = await checkWaiverStatus(user.id);
+    if (!hasAccepted) {
+      // Show waiver modal first
+      setSelectedUser(user);
+      setShowWaiverModal(true);
+    } else {
+      // User has already accepted, proceed normally
+      setCurrentUser(user);
+      navigate(`/predict/${user.id}`);
+    }
+  };
+
+  const handleWaiverAccept = async () => {
+    if (selectedUser) {
+      try {
+        // Save waiver acceptance to database
+        const response = await axios.put(`${API_BASE}/users/${selectedUser.id}/waiver`);
+        
+        if (response.data.success) {
+          // Proceed with user selection
+          setCurrentUser(selectedUser);
+          setShowWaiverModal(false);
+          setSelectedUser(null);
+          navigate(`/predict/${selectedUser.id}`);
+        } else {
+          throw new Error(response.data.error || 'Failed to save waiver');
+        }
+      } catch (error) {
+        console.error('Error accepting waiver:', error);
+        const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message;
+        alert(`Failed to save waiver acceptance: ${errorMessage}\n\nYou may need to run /api/migrate first.`);
+      }
+    }
   };
 
   if (loading) {
@@ -87,6 +145,7 @@ const HomePage = () => {
 
   return (
     <StyledContainer maxWidth={false} sx={{ py: 3 }}>
+      <Header />
       <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
         {/* Title Section */}
         <Box textAlign="center" mb={8}>
@@ -121,7 +180,7 @@ const HomePage = () => {
 
         {/* User Cards - Centered */}
         <Box display="flex" justifyContent="center" mb={6}>
-          {users.length === 0 && !loading ? (
+          {(!Array.isArray(users) || users.length === 0) && !loading ? (
             <Paper
               sx={{
                 p: 4,
@@ -150,8 +209,8 @@ const HomePage = () => {
             </Paper>
           ) : (
             <Grid container spacing={4} sx={{ maxWidth: '1200px' }}>
-              {users.map((user, index) => (
-              <Grid item xs={12} sm={6} md={4} key={user.id}>
+              {Array.isArray(users) && users.map((user, index) => (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={user.id}>
                 <StyledCard onClick={() => handleUserSelect(user)}>
                   <CardContent sx={{ p: 4, textAlign: 'center' }}>
                     {/* Avatar */}
@@ -221,6 +280,13 @@ const HomePage = () => {
           </Box>
         </InfoPaper>
       </Container>
+
+      {/* Waiver Modal */}
+      <WaiverModal
+        isOpen={showWaiverModal}
+        onAccept={handleWaiverAccept}
+        userName={selectedUser?.name || ''}
+      />
     </StyledContainer>
   );
 };

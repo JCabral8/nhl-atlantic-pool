@@ -15,19 +15,25 @@ const Avatar = ({ userId, name, size = 120, preferences: externalPreferences }) 
     nick: {
       skinColor: 'fdbcb4',
       hairColor: 'c93305',
-      top: 'shortHairShortFlat',
+      top: 'shortFlat',
+      clothing: 'shirtCrewNeck',
+      clothesColor: '262e33',
     },
     justin: {
       skinColor: 'edb98a',
       hairColor: '2c1b18',
-      top: 'longHairStraight',
+      top: 'straight01',
       facialHair: 'beardMajestic',
       facialHairColor: '2c1b18',
+      clothing: 'shirtCrewNeck',
+      clothesColor: '262e33',
     },
     chris: {
       skinColor: 'fdbcb4',
       hairColor: '6d4c41',
-      top: 'shortHairShortRound',
+      top: 'shortRound',
+      clothing: 'shirtCrewNeck',
+      clothesColor: '262e33',
     },
   };
 
@@ -60,6 +66,34 @@ const Avatar = ({ userId, name, size = 120, preferences: externalPreferences }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, externalPreferences]);
 
+  // Listen for avatar preference updates
+  useEffect(() => {
+    if (!userId || externalPreferences) {
+      return;
+    }
+
+    const handleAvatarUpdate = async (event) => {
+      // Reload preferences if this avatar's userId matches the updated one
+      if (event.detail && event.detail.userId === userId) {
+        try {
+          const response = await axios.get(`${API_BASE}/users/${userId}/avatar`, {
+            timeout: 1000,
+          });
+          if (response.data && response.data.preferences) {
+            setSavedPreferences(response.data.preferences);
+          }
+        } catch (error) {
+          // Silently fail
+        }
+      }
+    };
+
+    window.addEventListener('avatarPreferencesUpdated', handleAvatarUpdate);
+    return () => {
+      window.removeEventListener('avatarPreferencesUpdated', handleAvatarUpdate);
+    };
+  }, [userId, externalPreferences, API_BASE]);
+
   const avatarUrl = useMemo(() => {
     if (!userId || !name) {
       return null;
@@ -67,19 +101,28 @@ const Avatar = ({ userId, name, size = 120, preferences: externalPreferences }) 
 
     // Use external preferences if provided, otherwise use saved, otherwise defaults
     const preferences = externalPreferences || savedPreferences;
-    const config = preferences || defaultConfig[userId] || defaultConfig.nick;
+    const defaults = defaultConfig[userId] || defaultConfig.nick;
+    // Merge saved preferences with defaults to ensure all properties are present
+    const config = preferences ? { ...defaults, ...preferences } : defaults;
 
     if (!config || !config.skinColor || !config.hairColor || !config.top) {
       return null;
     }
 
     try {
+    // Include top and facialHair in seed so different styles generate different avatars
+    const facialHairPart = config.facialHair && config.facialHair !== 'Blank' ? config.facialHair : 'none';
     const avatarOptions = {
       size: size,
-      seed: `${name}-${userId}`,
+      seed: `${name}-${userId}-${config.top}-${facialHairPart}`,
+      // Dicebear v9 requires arrays for style options
       skinColor: [config.skinColor],
       hairColor: [config.hairColor],
-      top: [config.top], // Always include top
+      top: [config.top], // 'top' is correct for avataaars
+      clothing: [config.clothing || 'shirtCrewNeck'], // Always set clothing to keep it consistent
+      clothesColor: [config.clothesColor || '262e33'], // Clothing color
+      // Disable random accessories (glasses) unless explicitly set
+      accessoriesProbability: config.accessories ? 100 : 0,
     };
     
     // Add optional features
@@ -94,9 +137,15 @@ const Avatar = ({ userId, name, size = 120, preferences: externalPreferences }) 
     }
     if (config.facialHair && config.facialHair !== 'Blank') {
       avatarOptions.facialHair = [config.facialHair];
-      if (config.facialHairColor) {
-        avatarOptions.facialHairColor = [config.facialHairColor];
-      }
+      // Always provide facialHairColor when facialHair is set, default to hairColor if not specified
+      avatarOptions.facialHairColor = [config.facialHairColor || config.hairColor || '2c1b18'];
+      // Set facialHairProbability to 100 to ensure facial hair is displayed
+      avatarOptions.facialHairProbability = 100;
+    }
+    
+    // Only add accessories if explicitly set
+    if (config.accessories && config.accessories !== 'Blank') {
+      avatarOptions.accessories = [config.accessories];
     }
     
     const avatar = createAvatar(avataaars, avatarOptions);

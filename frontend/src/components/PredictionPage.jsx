@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { usePredictions } from '../hooks/usePredictions';
 import { useDeadline } from '../hooks/useDeadline';
 import { areAllSlotsFilled } from '../utils/dragValidation';
 import Header from './Header';
+import WaiverModal from './WaiverModal';
+import axios from 'axios';
 import TeamPillsTable from './TeamPillsTable';
 import PredictionSlots from './PredictionSlots';
 import DeadlineBar from './DeadlineBar';
@@ -48,7 +50,8 @@ const PredictionsPaper = styled(Paper)(({ theme }) => ({
 
 const PredictionPage = () => {
   const { userId } = useParams();
-  const { setCurrentUser, users } = useApp();
+  const navigate = useNavigate();
+  const { setCurrentUser, users, API_BASE } = useApp();
   const { isActive } = useDeadline();
   const {
     predictions: savedPredictions,
@@ -64,13 +67,60 @@ const PredictionPage = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [showWaiverModal, setShowWaiverModal] = useState(false);
+
+  // Check if user has accepted waiver
+  const checkWaiverStatus = async (userId) => {
+    try {
+      const response = await axios.get(`${API_BASE}/users/${userId}/waiver`);
+      return response.data.waiverAccepted === true;
+    } catch (error) {
+      console.error('Error checking waiver status:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      setCurrentUser(user);
+    const checkAndSetUser = async () => {
+      const user = users.find(u => u.id === userId);
+      if (user) {
+        // Check if user needs to accept waiver
+        const hasAccepted = await checkWaiverStatus(userId);
+        if (!hasAccepted) {
+          setShowWaiverModal(true);
+        } else {
+          setCurrentUser(user);
+        }
+      }
+    };
+    
+    if (users.length > 0) {
+      checkAndSetUser();
     }
-  }, [userId, users, setCurrentUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, users]);
+
+  const handleWaiverAccept = async () => {
+    try {
+      // Save waiver acceptance to database
+      const response = await axios.put(`${API_BASE}/users/${userId}/waiver`);
+      
+      if (response.data.success) {
+        // Set current user and close modal
+        const user = users.find(u => u.id === userId);
+        if (user) {
+          setCurrentUser(user);
+        }
+        setShowWaiverModal(false);
+      } else {
+        throw new Error(response.data.error || 'Failed to save waiver');
+      }
+    } catch (error) {
+      console.error('Error accepting waiver:', error);
+      const errorMessage = error.response?.data?.details || error.response?.data?.error || error.message;
+      alert(`Failed to save waiver acceptance: ${errorMessage}\n\nYou may need to run /api/migrate first.`);
+    }
+  };
 
   useEffect(() => {
     if (savedPredictions && savedPredictions.length > 0) {
@@ -107,6 +157,11 @@ const PredictionPage = () => {
       setErrorMessage(result.error);
       setTimeout(() => setErrorMessage(''), 4000);
     }
+  };
+
+  const handleClear = () => {
+    setLocalPredictions([]);
+    setSelectedTeam(null);
   };
 
   if (loading) {
@@ -279,38 +334,90 @@ const PredictionPage = () => {
                   selectedTeam={selectedTeam}
                   onTeamSelect={setSelectedTeam}
                 />
-                
-                {/* Submit Button */}
+
+                {/* Clear and Submit Buttons */}
                 {isActive && (
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    onClick={handleSubmit}
-                    disabled={!allSlotsFilled}
-                    sx={{
-                      mt: 3,
-                      py: 1.5,
-                      background: allSlotsFilled
-                        ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'
-                        : 'grey.400',
-                      '&:hover': allSlotsFilled
-                        ? {
-                            background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
-                            boxShadow: 6,
-                          }
-                        : {},
-                      fontFamily: 'Segoe UI, sans-serif',
-                      fontWeight: 600,
-                      fontSize: '1.125rem',
-                    }}
-                  >
-                    {allSlotsFilled 
-                        ? 'Submit Your Predictions' 
-                        : `Fill all 8 slots (${localPredictions.length}/8)`
-                    }
-                  </Button>
+                  <Box sx={{ mt: 3 }}>
+                    {/* Clear Selections Button */}
+                    {localPredictions.length > 0 && (
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        size="large"
+                        onClick={handleClear}
+                        sx={{
+                          mb: 2,
+                          py: 1.5,
+                          borderColor: 'error.main',
+                          color: 'error.main',
+                          '&:hover': {
+                            borderColor: 'error.dark',
+                            backgroundColor: 'error.light',
+                            color: 'error.dark',
+                          },
+                          fontFamily: 'Segoe UI, sans-serif',
+                          fontWeight: 600,
+                          fontSize: '1rem',
+                        }}
+                      >
+                        Clear Selections
+                      </Button>
+                    )}
+                    
+                    {/* Submit Button */}
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      size="large"
+                      onClick={handleSubmit}
+                      disabled={!allSlotsFilled}
+                      sx={{
+                        py: 1.5,
+                        background: allSlotsFilled
+                          ? 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)'
+                          : 'grey.400',
+                        '&:hover': allSlotsFilled
+                          ? {
+                              background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)',
+                              boxShadow: 6,
+                            }
+                          : {},
+                        fontFamily: 'Segoe UI, sans-serif',
+                        fontWeight: 600,
+                        fontSize: '1.125rem',
+                      }}
+                    >
+                      {allSlotsFilled 
+                          ? 'Submit Your Predictions' 
+                          : `Fill all 8 slots (${localPredictions.length}/8)`
+                      }
+                    </Button>
+                  </Box>
                 )}
+
+                {/* View Results Button */}
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  size="large"
+                  onClick={() => navigate('/results')}
+                  sx={{
+                    mt: 3,
+                    py: 1.5,
+                    borderColor: 'primary.main',
+                    color: 'primary.main',
+                    '&:hover': {
+                      borderColor: 'primary.dark',
+                      color: 'primary.dark',
+                      bgcolor: 'primary.light',
+                    },
+                    fontFamily: 'Segoe UI, sans-serif',
+                    fontWeight: 600,
+                    fontSize: '1rem',
+                  }}
+                >
+                  🏆 View Results
+                </Button>
               </Box>
             </PredictionsPaper>
           </Box>
@@ -323,6 +430,13 @@ const PredictionPage = () => {
         onClose={() => setShowConfirmModal(false)}
         onConfirm={handleConfirmSubmit}
         predictions={localPredictions}
+      />
+
+      {/* Waiver Modal */}
+      <WaiverModal
+        isOpen={showWaiverModal}
+        onAccept={handleWaiverAccept}
+        userName={users.find(u => u.id === userId)?.name || ''}
       />
     </StyledContainer>
   );

@@ -4,6 +4,42 @@ import { checkDeadline } from '../middleware/deadlineCheck.js';
 
 const router = express.Router();
 
+// GET /api/predictions/all - Get all users' predictions with user info
+router.get('/all', async (req, res) => {
+  try {
+    // Get all users
+    const users = await dbQuery.all('SELECT id, name, avatar_preferences FROM users');
+    
+    // Get most recent prediction for each user
+    const result = [];
+    for (const user of users) {
+      const prediction = await dbQuery.get(`
+        SELECT predictions, submitted_at, last_updated
+        FROM predictions
+        WHERE user_id = $1
+        ORDER BY last_updated DESC
+        LIMIT 1
+      `, [user.id]);
+      
+      if (prediction) {
+        result.push({
+          userId: user.id,
+          userName: user.name,
+          avatarPreferences: user.avatar_preferences ? JSON.parse(user.avatar_preferences) : null,
+          predictions: JSON.parse(prediction.predictions),
+          submittedAt: prediction.submitted_at,
+          lastUpdated: prediction.last_updated,
+        });
+      }
+    }
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error fetching all predictions:', error);
+    res.status(500).json({ error: 'Failed to fetch all predictions' });
+  }
+});
+
 // GET /api/predictions/:userId - Get user's predictions
 router.get('/:userId', async (req, res) => {
   try {

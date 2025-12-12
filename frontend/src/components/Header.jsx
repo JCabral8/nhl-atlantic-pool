@@ -114,6 +114,22 @@ const Header = () => {
               </Tooltip>
             </Box>
             <Button
+              variant="outlined"
+              onClick={() => navigate('/results')}
+              sx={{
+                borderColor: 'rgba(255, 255, 255, 0.5)',
+                color: 'white',
+                '&:hover': {
+                  borderColor: 'rgba(255, 255, 255, 0.8)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+                fontFamily: 'Segoe UI, sans-serif',
+                fontWeight: 600,
+              }}
+            >
+              🏆 Results
+            </Button>
+            <Button
               variant="contained"
               onClick={() => navigate('/')}
               sx={{

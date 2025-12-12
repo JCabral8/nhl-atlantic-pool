@@ -25,10 +25,36 @@ export const AppProvider = ({ children }) => {
         axios.get(`${API_BASE}/deadline`),
       ]);
       
+      // Validate that responses are JSON (not HTML)
+      const isJsonResponse = (data) => {
+        if (typeof data === 'string' && data.trim().startsWith('<!')) {
+          return false;
+        }
+        return Array.isArray(data) || (typeof data === 'object' && data !== null);
+      };
+      
       console.log('Users fetched:', usersRes.data);
-      setUsers(usersRes.data || []);
-      setStandings(standingsRes.data || []);
-      setDeadline(deadlineRes.data || null);
+      
+      // Ensure users is always an array
+      if (isJsonResponse(usersRes.data) && Array.isArray(usersRes.data)) {
+        setUsers(usersRes.data);
+      } else {
+        console.warn('Invalid users response, expected array but got:', typeof usersRes.data);
+        setUsers([]);
+      }
+      
+      if (isJsonResponse(standingsRes.data) && Array.isArray(standingsRes.data)) {
+        setStandings(standingsRes.data);
+      } else {
+        console.warn('Invalid standings response');
+        setStandings([]);
+      }
+      
+      if (isJsonResponse(deadlineRes.data)) {
+        setDeadline(deadlineRes.data);
+      } else {
+        setDeadline(null);
+      }
     } catch (error) {
       console.error('Error fetching initial data:', error);
       console.error('API_BASE:', API_BASE);
