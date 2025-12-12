@@ -110,11 +110,11 @@ const Avatar = ({ userId, name, size = 120, preferences: externalPreferences }) 
     }
 
     try {
-    // Include top and facialHair in seed so different styles generate different avatars
-    const facialHairPart = config.facialHair && config.facialHair !== 'Blank' ? config.facialHair : 'none';
+    // Use stable seed to prevent expression changes when hair/facial hair changes
+    const stableSeed = `${name}-${userId}-stable`;
     const avatarOptions = {
       size: size,
-      seed: `${name}-${userId}-${config.top}-${facialHairPart}`,
+      seed: stableSeed,
       // Dicebear v9 requires arrays for style options
       skinColor: [config.skinColor],
       hairColor: [config.hairColor],
@@ -125,22 +125,21 @@ const Avatar = ({ userId, name, size = 120, preferences: externalPreferences }) 
       accessoriesProbability: config.accessories ? 100 : 0,
     };
     
-    // Add optional features
-    if (config.eyes && config.eyes !== 'default') {
-      avatarOptions.eyes = [config.eyes];
-    }
-    if (config.mouth && config.mouth !== 'default') {
-      avatarOptions.mouth = [config.mouth];
-    }
-    if (config.eyebrows && config.eyebrows !== 'default') {
-      avatarOptions.eyebrows = [config.eyebrows];
-    }
+    // ALWAYS explicitly set expression options to preserve them
+    // If not set, use defaults to prevent random changes
+    avatarOptions.eyes = config.eyes && config.eyes !== 'default' ? [config.eyes] : ['default'];
+    avatarOptions.mouth = config.mouth && config.mouth !== 'default' ? [config.mouth] : ['default'];
+    avatarOptions.eyebrows = config.eyebrows && config.eyebrows !== 'default' ? [config.eyebrows] : ['default'];
+    
     if (config.facialHair && config.facialHair !== 'Blank') {
       avatarOptions.facialHair = [config.facialHair];
       // Always provide facialHairColor when facialHair is set, default to hairColor if not specified
       avatarOptions.facialHairColor = [config.facialHairColor || config.hairColor || '2c1b18'];
       // Set facialHairProbability to 100 to ensure facial hair is displayed
       avatarOptions.facialHairProbability = 100;
+    } else {
+      // Explicitly disable facial hair if not set
+      avatarOptions.facialHairProbability = 0;
     }
     
     // Only add accessories if explicitly set

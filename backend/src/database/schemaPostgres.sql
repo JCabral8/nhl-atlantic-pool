@@ -57,6 +57,6 @@ ON CONFLICT DO NOTHING;
 
 -- Insert deadline
 INSERT INTO config (key, value) VALUES
-  ('deadline', '2025-12-15T23:59:59-05:00')
+  ('deadline', '2025-12-14T23:59:59-05:00')
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 

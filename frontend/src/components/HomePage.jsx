@@ -262,7 +262,7 @@ const HomePage = () => {
               >
                 Deadline:{' '}
                 <Box component="span" color="primary.main" fontWeight="700">
-                  Friday, December 13, 2025
+                  Sunday, December 14, 2025
                 </Box>{' '}
                 at{' '}
                 <Box component="span" color="primary.main" fontWeight="700">

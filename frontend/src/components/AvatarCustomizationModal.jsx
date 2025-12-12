@@ -125,12 +125,13 @@ const AvatarCustomizationModal = ({ isOpen, onClose, userId, userName, onAvatarU
     // Use user's preference or default to a simple shirt
     const clothingValue = prefs.clothing || 'shirtCrewNeck';
     
-    // Use the same seed format as Avatar component to ensure consistency
-    const facialHairPart = prefs.facialHair && prefs.facialHair !== 'Blank' ? prefs.facialHair : 'none';
+    // Use a stable seed that doesn't change with hair/facial hair
+    // This prevents expressions from changing when hair changes
+    const stableSeed = `${userName}-${userId}-stable`;
     const options = {
       size: 120,
-      // Use same seed format as Avatar component for consistency
-      seed: `${userName}-${userId}-${topValue}-${facialHairPart}`,
+      // Use stable seed to prevent random expression changes
+      seed: stableSeed,
       // Dicebear v9 requires arrays for style options
       skinColor: [prefs.skinColor || 'fdbcb4'],
       hairColor: [prefs.hairColor || '2c1b18'],
@@ -148,18 +149,16 @@ const AvatarCustomizationModal = ({ isOpen, onClose, userId, userName, onAvatarU
       options.facialHairColor = [prefs.facialHairColor || prefs.hairColor || '2c1b18'];
       // Set facialHairProbability to 100 to ensure facial hair is displayed
       options.facialHairProbability = 100;
+    } else {
+      // Explicitly disable facial hair if not set
+      options.facialHairProbability = 0;
     }
     
-    // Add expression options
-    if (prefs.eyes && prefs.eyes !== 'default') {
-      options.eyes = [prefs.eyes];
-    }
-    if (prefs.mouth && prefs.mouth !== 'default') {
-      options.mouth = [prefs.mouth];
-    }
-    if (prefs.eyebrows && prefs.eyebrows !== 'default') {
-      options.eyebrows = [prefs.eyebrows];
-    }
+    // ALWAYS explicitly set expression options to preserve them
+    // If not set, use defaults to prevent random changes
+    options.eyes = prefs.eyes && prefs.eyes !== 'default' ? [prefs.eyes] : ['default'];
+    options.mouth = prefs.mouth && prefs.mouth !== 'default' ? [prefs.mouth] : ['default'];
+    options.eyebrows = prefs.eyebrows && prefs.eyebrows !== 'default' ? [prefs.eyebrows] : ['default'];
     
     // Only add accessories if explicitly set
     if (prefs.accessories && prefs.accessories !== 'Blank') {
@@ -517,6 +516,12 @@ const AvatarCustomizationModal = ({ isOpen, onClose, userId, userName, onAvatarU
                         hairColor: currentPreferences?.hairColor || defaultOptions[userId]?.hairColor || '2c1b18',
                         clothing: currentPreferences?.clothing || defaultOptions[userId]?.clothing || 'shirtCrewNeck',
                         clothesColor: currentPreferences?.clothesColor || defaultOptions[userId]?.clothesColor || '262e33',
+                        // Preserve expression preferences
+                        eyes: currentPreferences?.eyes || 'default',
+                        mouth: currentPreferences?.mouth || 'default',
+                        eyebrows: currentPreferences?.eyebrows || 'default',
+                        facialHair: currentPreferences?.facialHair,
+                        facialHairColor: currentPreferences?.facialHairColor,
                       })}
                       alt={style.label}
                       style={{ width: 50, height: 50, borderRadius: '50%' }}
