@@ -198,8 +198,16 @@ const resetDbHandler = async (req, res) => {
     // Delete all predictions
     await dbQuery.run('DELETE FROM predictions');
     
-    // Reset waiver acceptances
-    await dbQuery.run('UPDATE users SET waiver_accepted = 0');
+    // Reset waiver acceptances (only if column exists)
+    try {
+      await dbQuery.run('UPDATE users SET waiver_accepted = 0');
+    } catch (error) {
+      if (error.message && (error.message.includes('does not exist') || error.message.includes('no such column'))) {
+        console.log('⚠️  waiver_accepted column does not exist, skipping waiver reset');
+      } else {
+        throw error;
+      }
+    }
     
     // Clear avatar preferences
     await dbQuery.run('UPDATE users SET avatar_preferences = NULL');
