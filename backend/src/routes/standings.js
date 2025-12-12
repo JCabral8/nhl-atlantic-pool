@@ -1,5 +1,6 @@
 import express from 'express';
 import { dbQuery } from '../database/dbAdapter.js';
+import { updateStandings } from '../services/standingsUpdater.js';
 
 const router = express.Router();
 
@@ -26,6 +27,34 @@ router.get('/', async (req, res) => {
   } catch (error) {
     console.error('Error fetching standings:', error);
     res.status(500).json({ error: 'Failed to fetch standings' });
+  }
+});
+
+// POST /api/standings/update-now - Manually trigger standings update (for testing)
+router.post('/update-now', async (req, res) => {
+  try {
+    console.log('🔄 Manual standings update triggered');
+    const result = await updateStandings();
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Standings updated successfully',
+        ...result,
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Standings update failed',
+        ...result,
+      });
+    }
+  } catch (error) {
+    console.error('Error in manual standings update:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 });
 

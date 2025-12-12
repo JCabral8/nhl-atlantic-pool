@@ -5,6 +5,7 @@ import usersRouter from './routes/users.js';
 import standingsRouter from './routes/standings.js';
 import predictionsRouter from './routes/predictions.js';
 import deadlineRouter from './routes/deadline.js';
+import { startCronScheduler } from './services/cronScheduler.js';
 
 dotenv.config();
 
@@ -331,5 +332,8 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🚀 Backend server running on http://localhost:${PORT}`);
   console.log(`📊 Accepting requests from ${FRONTEND_URL}`);
+  
+  // Start cron scheduler after server is running
+  startCronScheduler();
 });
 
