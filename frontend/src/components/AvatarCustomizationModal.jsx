@@ -807,6 +807,10 @@ const AvatarCustomizationModal = ({ isOpen, onClose, userId, userName, onAvatarU
                             clothesColor: currentPreferences?.clothesColor || defaultOptions[userId]?.clothesColor || '262e33',
                             facialHair: style.value,
                             facialHairColor: currentPreferences?.facialHairColor || currentPreferences?.hairColor || defaultOptions[userId]?.hairColor || '2c1b18',
+                            // Preserve expression preferences
+                            eyes: currentPreferences?.eyes || 'default',
+                            mouth: currentPreferences?.mouth || 'default',
+                            eyebrows: currentPreferences?.eyebrows || 'default',
                           })}
                           alt={style.label}
                           style={{ width: 50, height: 50, borderRadius: '50%' }}
