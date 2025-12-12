@@ -128,6 +128,19 @@ const ResultsPage = () => {
   const [allPredictions, setAllPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Deduplicate standings by team name to prevent duplicates
+  const uniqueStandings = useMemo(() => {
+    if (!standings || standings.length === 0) return [];
+    const seen = new Set();
+    return standings.filter(standing => {
+      if (seen.has(standing.team)) {
+        return false;
+      }
+      seen.add(standing.team);
+      return true;
+    });
+  }, [standings]);
+
   useEffect(() => {
     fetchAllPredictions();
   }, []);
@@ -187,7 +200,9 @@ const ResultsPage = () => {
       });
     }
     
-    const teamNames = standings.map(s => s.team);
+    // Deduplicate standings for scoring
+    const uniqueStandingsForScoring = standings ? [...new Map(standings.map(s => [s.team, s])).values()] : [];
+    const teamNames = uniqueStandingsForScoring.map(s => s.team);
     
     // Helper to convert team ID to team name
     const getTeamNameFromId = (teamId) => {
@@ -305,7 +320,7 @@ const ResultsPage = () => {
         </Box>
 
         {/* Standings with Predictions */}
-        {standings && standings.length > 0 ? (
+        {uniqueStandings && uniqueStandings.length > 0 ? (
           <ResultsPaper>
             <Typography
               variant="h4"
@@ -316,13 +331,13 @@ const ResultsPage = () => {
               Standings & Predictions
             </Typography>
             
-            {standings.map((standing, index) => {
+            {uniqueStandings.map((standing, index) => {
             const actualRank = index + 1;
             const teamData = getTeamData(standing.team);
             const teamColor = getTeamColor(standing.team);
             
             return (
-              <PositionRow key={standing.team}>
+              <PositionRow key={`${standing.team}-${index}-${standing.id || index}`}>
                 {/* Position Number */}
                 <Box
                   sx={{
@@ -399,7 +414,7 @@ const ResultsPage = () => {
                     const predTeamData = getTeamData(prediction.team);
                     // Get team name for standings lookup (standings use full team names)
                     const teamNameForStandings = predTeamData?.name || prediction.teamName || prediction.team;
-                    const actualTeamRank = standings.findIndex(s => s.team === teamNameForStandings) + 1;
+                    const actualTeamRank = uniqueStandings.findIndex(s => s.team === teamNameForStandings) + 1;
                     const borderColor = getAvatarBorderColor(prediction.rank, actualTeamRank);
                     
                     return (
