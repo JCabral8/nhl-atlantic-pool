@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { dbQuery } from '../database/dbAdapter.js';
 
 // NHL API endpoint
@@ -28,15 +27,21 @@ const fetchNHLStandings = async (retryCount = 0) => {
   const baseDelay = 1000; // 1 second
 
   try {
-    const response = await axios.get(`${NHL_API_BASE}/standings`, {
-      timeout: 10000, // 10 second timeout
+    const response = await fetch(`${NHL_API_BASE}/standings`, {
+      // Node 18+ has global fetch; keep options simple for compatibility
       headers: {
         'Accept': 'application/json',
       },
     });
 
-    if (response.data && response.data.records) {
-      return response.data;
+    if (!response.ok) {
+      throw new Error(`NHL API responded with ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data && data.records) {
+      return data;
     }
 
     throw new Error('Invalid API response format');

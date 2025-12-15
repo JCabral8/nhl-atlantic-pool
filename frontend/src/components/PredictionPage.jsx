@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { usePredictions } from '../hooks/usePredictions';
@@ -23,6 +23,8 @@ import {
   Chip,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 const StyledContainer = styled(Container)(({ theme }) => ({
   minHeight: '100vh',
@@ -68,6 +70,10 @@ const PredictionPage = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [showWaiverModal, setShowWaiverModal] = useState(false);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const predictorRef = useRef(null);
 
   // Check if user has accepted waiver
   const checkWaiverStatus = async (userId) => {
@@ -163,6 +169,13 @@ const PredictionPage = () => {
     setLocalPredictions([]);
     setSelectedTeam(null);
   };
+
+  // When a team is selected from the standings on mobile, gently scroll to the predictor section
+  useEffect(() => {
+    if (isMobile && selectedTeam && predictorRef.current) {
+      predictorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [isMobile, selectedTeam]);
 
   if (loading) {
     return (
@@ -263,7 +276,10 @@ const PredictionPage = () => {
           </Box>
           
           {/* RIGHT SIDE - User Predictions */}
-          <Box sx={{ flex: { xs: '0 0 100%', lg: '0 0 calc(50% - 12px)' } }}>
+          <Box
+            ref={predictorRef}
+            sx={{ flex: { xs: '0 0 100%', lg: '0 0 calc(50% - 12px)' } }}
+          >
             <PredictionsPaper>
               {/* Header */}
               <Box

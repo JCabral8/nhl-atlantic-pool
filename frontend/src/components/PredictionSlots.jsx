@@ -225,11 +225,12 @@ const PredictionSlots = ({ predictions, onPredictionsChange, disabled, selectedT
             top: -12,
             width: 40,
             height: 40,
-            bgcolor: 'rgba(255, 255, 255, 0.2)',
-            backdropFilter: 'blur(10px)',
-            border: '2px solid rgba(255, 255, 255, 0.3)',
-            fontWeight: 700,
+            bgcolor: 'rgba(15, 23, 42, 0.9)', // dark slate for strong contrast
+            border: '2px solid rgba(255, 255, 255, 0.6)',
+            color: '#ffffff',
+            fontWeight: 800,
             fontFamily: 'Segoe UI, sans-serif',
+            fontSize: '1rem',
             zIndex: 10,
           }}
         >

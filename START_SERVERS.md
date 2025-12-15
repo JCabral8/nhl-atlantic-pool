@@ -98,7 +98,7 @@ The application uses these default settings:
 **Backend (.env):**
 - PORT=3001
 - FRONTEND_URL=http://localhost:5173
-- DEADLINE=2025-12-13T23:59:59-05:00
+- DEADLINE=2025-12-17T23:59:59-05:00
 - DATABASE_PATH=./database/nhl_pool.db
 
 **Frontend:**

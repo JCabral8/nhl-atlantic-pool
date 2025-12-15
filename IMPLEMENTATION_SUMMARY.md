@@ -10,7 +10,7 @@ All planned features have been successfully implemented and tested!
 - **Home Page**: User avatar selection for Nick, Justin, and Chris
 - **Prediction Page**: Two-column layout with current standings and prediction interface
 - **Drag-and-Drop Interface**: HTML5 native drag-and-drop for team ranking
-- **Deadline Timer**: Real-time countdown to December 13, 2025, 11:59 PM EST
+- **Deadline Timer**: Real-time countdown to December 17, 2025, 11:59 PM EST
 - **Responsive Design**: Works on desktop and mobile devices
 - **State Management**: React Context API for global state
 - **Custom Hooks**: usePredictions, useDeadline for data management
@@ -126,7 +126,7 @@ Frontend runs on: http://localhost:5173
 3. **Confirmation**: Modal shows prediction summary
 4. **Success**: Predictions saved to database
 5. **Edit**: Users can modify until deadline
-6. **Deadline**: After Dec 13, 2025 11:59 PM EST, predictions are locked
+6. **Deadline**: After Dec 17, 2025 11:59 PM EST, predictions are locked
 
 ## 🔒 Security & Validation
 
@@ -173,7 +173,7 @@ Frontend runs on: http://localhost:5173
 
 - Database initialized with current standings (Dec 10, 2025)
 - All 3 users pre-populated in database
-- Deadline set to December 13, 2025, 11:59 PM EST
+- Deadline set to December 17, 2025, 11:59 PM EST
 - Frontend and backend must both be running
 - Both servers start successfully and communicate properly
 
@@ -188,5 +188,5 @@ Frontend runs on: http://localhost:5173
 
 ## 🎉 Success!
 
-The NHL Atlantic Conference Prediction Pool application is fully functional and ready for use! Users can now make their predictions before the December 13th deadline.
+The NHL Atlantic Conference Prediction Pool application is fully functional and ready for use! Users can now make their predictions before the December 17th deadline.
 

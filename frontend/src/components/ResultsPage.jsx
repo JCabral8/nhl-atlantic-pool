@@ -14,6 +14,8 @@ import {
   Grid,
   Chip,
   CircularProgress,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import axios from 'axios';
@@ -44,30 +46,32 @@ const ResultsPaper = styled(Paper)(({ theme }) => ({
 
 const PositionRow = styled(Box)(({ theme }) => ({
   display: 'flex',
-  alignItems: 'center',
+  alignItems: 'stretch',
+  flexWrap: 'wrap',
   gap: theme.spacing(2),
   padding: theme.spacing(2),
   borderRadius: '12px',
   marginBottom: theme.spacing(2),
   background: 'rgba(0, 0, 0, 0.02)',
   border: '1px solid rgba(0, 0, 0, 0.1)',
-  '& > *:nth-of-type(2)': {
-    flex: '1 1 0',
-    minWidth: 0,
+  [theme.breakpoints.down('sm')]: {
+    flexDirection: 'column',
   },
 }));
 
 const UserPredictionPill = styled(Box)(({ theme, borderColor }) => ({
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
-  gap: theme.spacing(1),
-  padding: theme.spacing(1, 1.5),
+  justifyContent: 'center',
+  gap: theme.spacing(0.5),
+  padding: theme.spacing(1),
   borderRadius: '8px',
   background: 'white',
   border: `2px solid ${borderColor}`,
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-  height: '48px',
-  minHeight: '48px',
+  minWidth: '56px',
+  minHeight: '64px',
 }));
 
 const PodiumContainer = styled(Box)(({ theme }) => ({
@@ -77,6 +81,15 @@ const PodiumContainer = styled(Box)(({ theme }) => ({
   gap: theme.spacing(2),
   marginTop: theme.spacing(4),
   position: 'relative',
+  flexWrap: 'wrap',
+  [theme.breakpoints.down('md')]: {
+    gap: theme.spacing(1),
+  },
+  [theme.breakpoints.down('sm')]: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: theme.spacing(3),
+  },
 }));
 
 const PodiumPlace = styled(Box)(({ theme, height, position }) => ({
@@ -86,14 +99,31 @@ const PodiumPlace = styled(Box)(({ theme, height, position }) => ({
   width: '200px',
   position: 'relative',
   justifyContent: 'flex-end',
+  [theme.breakpoints.down('md')]: {
+    width: '160px',
+  },
+  [theme.breakpoints.down('sm')]: {
+    width: '100%',
+    maxWidth: '280px',
+    order: 'unset',
+  },
   ...(position === 'first' && {
     order: 2,
+    [theme.breakpoints.down('sm')]: {
+      order: 1,
+    },
   }),
   ...(position === 'second' && {
     order: 1,
+    [theme.breakpoints.down('sm')]: {
+      order: 2,
+    },
   }),
   ...(position === 'third' && {
     order: 3,
+    [theme.breakpoints.down('sm')]: {
+      order: 3,
+    },
   }),
 }));
 
@@ -127,6 +157,9 @@ const ResultsPage = () => {
   const { isActive } = useDeadline();
   const [allPredictions, setAllPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
   // Deduplicate standings by team name to prevent duplicates
   const uniqueStandings = useMemo(() => {
@@ -358,10 +391,8 @@ const ResultsPage = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 1,
-                    height: 48,
                     minHeight: 48,
-                    minWidth: 250,
-                    flex: '1 1 auto',
+                    flex: { xs: '1 1 100%', md: '1 1 auto' },
                     px: 2,
                     py: 1,
                     borderRadius: '8px',
@@ -405,7 +436,16 @@ const ResultsPage = () => {
                 </Box>
 
                 {/* User Predictions */}
-                <Box sx={{ display: 'flex', gap: 1, flex: 1, justifyContent: 'flex-end' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                    flex: { xs: '1 1 100%', md: '0 0 auto' },
+                    justifyContent: { xs: 'center', md: 'flex-end' },
+                    mt: { xs: 1.5, md: 0 },
+                  }}
+                >
                   {allPredictions.map((userPred) => {
                     const prediction = getUserPredictionForRank(userPred.userId, actualRank);
                     if (!prediction) return null;
@@ -426,17 +466,17 @@ const ResultsPage = () => {
                           preferences={userPred.avatarPreferences}
                         />
                         {predTeamData ? (
-                          <TeamLogo teamData={predTeamData} size="32px" />
+                          <TeamLogo teamData={predTeamData} size="28px" />
                         ) : (
                           <Typography
                             variant="caption"
                             sx={{
                               fontFamily: 'Segoe UI, sans-serif',
                               fontWeight: 600,
-                              fontSize: '0.7rem',
+                              fontSize: '0.65rem',
                               color: 'text.secondary',
                               textAlign: 'center',
-                              minWidth: 32,
+                              minWidth: 24,
                             }}
                           >
                             {prediction.team.split(' ').slice(0, 3).map(w => w[0]).join('').toUpperCase()}
@@ -485,7 +525,10 @@ const ResultsPage = () => {
                       variant="h3"
                       fontWeight="700"
                       mb={2}
-                      sx={{ fontFamily: 'Segoe UI, sans-serif' }}
+                      sx={{ 
+                        fontFamily: 'Segoe UI, sans-serif',
+                        fontSize: { xs: '1.75rem', md: '2.5rem' }
+                      }}
                     >
                       {userScores[1].score} pts
                     </Typography>
@@ -493,7 +536,7 @@ const ResultsPage = () => {
                       <Avatar
                         userId={userScores[1].userId}
                         name={userScores[1].userName}
-                        size={120}
+                        size={isMobile ? 80 : isTablet ? 100 : 120}
                         preferences={userScores[1].avatarPreferences}
                       />
                     </Box>
@@ -501,12 +544,15 @@ const ResultsPage = () => {
                       variant="h6"
                       fontWeight="600"
                       mt={2}
-                      sx={{ fontFamily: 'Segoe UI, sans-serif' }}
+                      sx={{ 
+                        fontFamily: 'Segoe UI, sans-serif',
+                        fontSize: { xs: '1rem', md: '1.25rem' }
+                      }}
                     >
                       {userScores[1].userName}
                     </Typography>
                   </Box>
-                  <PodiumBase height={200} position="second">
+                  <PodiumBase height={isMobile ? 150 : 200} position="second">
                     <Box sx={{ mt: 2, textAlign: 'center' }}>
                       {userScores[1].breakdown
                         .filter(b => b.points > 0)
@@ -533,7 +579,10 @@ const ResultsPage = () => {
                       variant="h2"
                       fontWeight="700"
                       mb={2}
-                      sx={{ fontFamily: 'Segoe UI, sans-serif' }}
+                      sx={{ 
+                        fontFamily: 'Segoe UI, sans-serif',
+                        fontSize: { xs: '2rem', md: '3.75rem' }
+                      }}
                     >
                       {userScores[0].score} pts
                     </Typography>
@@ -541,7 +590,7 @@ const ResultsPage = () => {
                       <Avatar
                         userId={userScores[0].userId}
                         name={userScores[0].userName}
-                        size={140}
+                        size={isMobile ? 100 : isTablet ? 120 : 140}
                         preferences={userScores[0].avatarPreferences}
                       />
                     </Box>
@@ -549,12 +598,15 @@ const ResultsPage = () => {
                       variant="h5"
                       fontWeight="600"
                       mt={2}
-                      sx={{ fontFamily: 'Segoe UI, sans-serif' }}
+                      sx={{ 
+                        fontFamily: 'Segoe UI, sans-serif',
+                        fontSize: { xs: '1.125rem', md: '1.5rem' }
+                      }}
                     >
                       {userScores[0].userName}
                     </Typography>
                   </Box>
-                  <PodiumBase height={240} position="first">
+                  <PodiumBase height={isMobile ? 180 : 240} position="first">
                     <Box sx={{ mt: 2, textAlign: 'center' }}>
                       {userScores[0].breakdown
                         .filter(b => b.points > 0)
@@ -581,7 +633,10 @@ const ResultsPage = () => {
                       variant="h4"
                       fontWeight="700"
                       mb={2}
-                      sx={{ fontFamily: 'Segoe UI, sans-serif' }}
+                      sx={{ 
+                        fontFamily: 'Segoe UI, sans-serif',
+                        fontSize: { xs: '1.5rem', md: '2.125rem' }
+                      }}
                     >
                       {userScores[2].score} pts
                     </Typography>
@@ -589,7 +644,7 @@ const ResultsPage = () => {
                       <Avatar
                         userId={userScores[2].userId}
                         name={userScores[2].userName}
-                        size={100}
+                        size={isMobile ? 70 : isTablet ? 85 : 100}
                         preferences={userScores[2].avatarPreferences}
                       />
                     </Box>
@@ -597,12 +652,15 @@ const ResultsPage = () => {
                       variant="h6"
                       fontWeight="600"
                       mt={2}
-                      sx={{ fontFamily: 'Segoe UI, sans-serif' }}
+                      sx={{ 
+                        fontFamily: 'Segoe UI, sans-serif',
+                        fontSize: { xs: '0.875rem', md: '1.25rem' }
+                      }}
                     >
                       {userScores[2].userName}
                     </Typography>
                   </Box>
-                  <PodiumBase height={160} position="third">
+                  <PodiumBase height={isMobile ? 130 : 160} position="third">
                     <Box sx={{ mt: 2, textAlign: 'center' }}>
                       {userScores[2].breakdown
                         .filter(b => b.points > 0)

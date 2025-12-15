@@ -158,7 +158,7 @@ const ConfirmSubmitModal = ({ isOpen, onClose, onConfirm, predictions }) => {
 
         <Alert severity="info" icon="ℹ️" sx={{ borderRadius: '12px' }}>
           <Typography variant="body2" sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
-            You can edit your predictions anytime before the deadline (Dec 14, 2025 at 11:59 PM EST)
+            You can edit your predictions anytime before the deadline (Dec 17, 2025 at 11:59 PM EST)
           </Typography>
         </Alert>
       </DialogContent>

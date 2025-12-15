@@ -125,7 +125,7 @@ const DeadlineBar = () => {
             fontWeight="700"
             sx={{ fontFamily: 'Segoe UI, sans-serif', mt: 0.5 }}
           >
-            Dec 14, 2025
+            Dec 17, 2025
           </Typography>
           <Typography
             variant="body2"
