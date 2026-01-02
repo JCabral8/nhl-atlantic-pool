@@ -5,6 +5,7 @@ import usersRouter from './routes/users.js';
 import standingsRouter from './routes/standings.js';
 import predictionsRouter from './routes/predictions.js';
 import deadlineRouter from './routes/deadline.js';
+import adminRouter from './routes/admin.js';
 
 dotenv.config();
 
@@ -61,6 +62,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/standings', standingsRouter);
 app.use('/api/predictions', predictionsRouter);
 app.use('/api/deadline', deadlineRouter);
+app.use('/api/admin', adminRouter);
 
 // Health check
 app.get('/health', (req, res) => {

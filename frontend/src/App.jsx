@@ -5,6 +5,7 @@ import { AppProvider } from './context/AppContext';
 import HomePage from './components/HomePage';
 import PredictionPage from './components/PredictionPage';
 import ResultsPage from './components/ResultsPage';
+import AdminPage from './components/AdminPage';
 
 const theme = createTheme({
   palette: {
@@ -71,6 +72,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/predict/:userId" element={<PredictionPage />} />
             <Route path="/results" element={<ResultsPage />} />
+            <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </BrowserRouter>
       </AppProvider>
