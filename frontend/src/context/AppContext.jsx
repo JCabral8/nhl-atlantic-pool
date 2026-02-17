@@ -3,10 +3,11 @@ import axios from 'axios';
 
 const AppContext = createContext();
 
-// Production on Vercel: same-origin /api. Local dev: VITE_API_URL or localhost.
+// Production: always same-origin /api (Vercel). Local dev: VITE_API_URL or localhost.
 const API_BASE =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD && typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:3001/api');
+  import.meta.env.PROD && typeof window !== 'undefined'
+    ? `${window.location.origin}/api`
+    : (import.meta.env.VITE_API_URL || 'http://localhost:3001/api');
 
 export const AppProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
