@@ -1,0 +1,16 @@
+# Render Blueprint: free backend for Atlantic Pool
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: atlantic-pool-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false

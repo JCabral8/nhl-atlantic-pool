@@ -197,7 +197,7 @@ const HomePage = () => {
               <Typography variant="body1" color="text.secondary" mb={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
                 Could not connect to the backend API.
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'Segoe UI, sans-serif', fontFamily: 'monospace' }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
                 API URL: {API_BASE}
               </Typography>
               <Typography variant="body2" color="text.secondary" mt={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
