@@ -30,10 +30,15 @@ if (usePostgres) {
     // Do not throw: allow the function to load; first real request will get a proper error
   }
 } else {
-  // SQLite only for local dev; Vercel/serverless requires DATABASE_URL
+  // SQLite only for local dev; on Vercel/production, no DATABASE_URL = stub so app can load and return clear errors
   if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
-    throw new Error('DATABASE_URL must be set on Vercel. Add it in Project Settings → Environment Variables, then redeploy.');
-  }
+    const err = new Error('DATABASE_URL must be set on Vercel. Add it in Settings → Environment Variables for Production and Preview, then redeploy.');
+    db = {
+      query: () => Promise.reject(err),
+      connect: () => Promise.reject(err),
+      end: () => Promise.resolve(),
+    };
+  } else {
   try {
     const Database = (await import('better-sqlite3')).default;
     const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../database/nhl_pool.db');
@@ -46,6 +51,7 @@ if (usePostgres) {
     console.error('   DATABASE_URL=postgresql://...  (copy from Railway: Project → PostgreSQL → Connect)\n');
     console.error('   Then restart: npm run dev\n');
     throw err;
+  }
   }
 }
 

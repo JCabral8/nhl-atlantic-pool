@@ -8,10 +8,9 @@ Host the app for free using **GitHub** + **Vercel** (frontend and API) + **Supab
 
 1. Go to **[supabase.com](https://supabase.com)** and sign up (free, GitHub login).
 2. Create a new project (e.g. "atlantic-pool"); choose a region and database password.
-3. In the project: **Project Settings** → **Database** → **Connection string** → **URI**.
-4. Copy the URI and **replace `[YOUR-PASSWORD]`** with your real database password (no square brackets in the final value).  
-   If the password has special characters (`@`, `#`, `/`, `%`), URL-encode them (e.g. `@` → `%40`).  
-   Add `?sslmode=require` at the end if the connection fails. Use this as `DATABASE_URL` in Vercel.
+3. In the project dashboard, click the **Connect** button (top of the page). If you don’t see it: open the left sidebar → **Database** (or **Project Settings** → **Database**), then look for **Connection string** or **Connect**.
+4. In the connection options, choose **Transaction** (pooler) mode — **not Direct**. Use the URI with port **6543** (required for Vercel serverless).
+5. Copy the URI and **replace `[YOUR-PASSWORD]`** with your real database password (no brackets). Use this as `DATABASE_URL` in Vercel.
 
 **Note:** Free projects can be paused after inactivity; unpause in the dashboard. No charges.
 
@@ -27,9 +26,10 @@ Host the app for free using **GitHub** + **Vercel** (frontend and API) + **Supab
    - **Output Directory:** `frontend/dist`
    - **Install Command:** `npm install --ignore-scripts` (or leave default; this is set in `vercel.json`)
 4. **Environment variables** (Project → Settings → Environment Variables):
-   - `DATABASE_URL` = your Supabase connection string (URI from Supabase → Project Settings → Database)
+   - `DATABASE_URL` = your Supabase connection string (Transaction/pooler URI, port 6543)
    - `NODE_ENV` = `production`
    - `FRONTEND_URL` = `https://nhl-atlantic-pool.vercel.app`
+   - Add these for **Production** and **Preview** (or enable “Apply to Preview”) so preview deployments work.
 5. Deploy. Your app will be at **https://nhl-atlantic-pool.vercel.app**.
 
 **Do not set** `VITE_API_URL` for production. The frontend uses the same origin (`/api`) when that env is unset.
