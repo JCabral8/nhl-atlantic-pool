@@ -16,9 +16,15 @@ let db;
 if (usePostgres) {
   // Use PostgreSQL (required on Vercel; optional locally)
   const { Pool } = await import('pg');
+  let connStr = process.env.DATABASE_URL;
+  // Supabase transaction mode (port 6543) needs pgbouncer=true; avoid duplicate
+  if (connStr && connStr.includes('6543') && !connStr.includes('pgbouncer=true')) {
+    connStr += (connStr.includes('?') ? '&' : '?') + 'pgbouncer=true';
+  }
   db = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connStr,
     ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10000,
   });
 
   // Test connection without crashing the serverless function (cold start timeouts can fail)

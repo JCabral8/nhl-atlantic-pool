@@ -73,6 +73,11 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// No-DB ping (verify API is reachable)
+app.get('/api/ping', (req, res) => {
+  res.json({ pong: true });
+});
+
 // Database initialization endpoint (for production setup)
 const initDbHandler = async (req, res) => {
   try {
