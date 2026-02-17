@@ -86,17 +86,16 @@ const initDbHandler = async (req, res) => {
 
     const usePostgres = !!process.env.DATABASE_URL;
 
-    let schemaPath;
+    let schema;
     if (usePostgres) {
-      schemaPath = path.join(__dirname, 'database', 'schemaPostgres.sql');
+      // Use inlined schema so serverless (Vercel) works without .sql files in the bundle
+      const { schemaPostgres } = await import('./database/schemaPostgresInline.js');
+      schema = schemaPostgres;
+      if (typeof console !== 'undefined') console.log('🗄️  Database type: PostgreSQL (inline schema)');
     } else {
-      schemaPath = path.resolve(__dirname, '..', 'database', 'schema.sql');
-    }
-
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    if (typeof console !== 'undefined') {
-      console.log(`📄 Loading schema from: ${schemaPath}`);
-      console.log(`🗄️  Database type: ${usePostgres ? 'PostgreSQL' : 'SQLite'}`);
+      const schemaPath = path.resolve(__dirname, '..', 'database', 'schema.sql');
+      schema = fs.readFileSync(schemaPath, 'utf8');
+      if (typeof console !== 'undefined') console.log(`📄 Loading schema from: ${schemaPath}`);
     }
 
     if (usePostgres) {
