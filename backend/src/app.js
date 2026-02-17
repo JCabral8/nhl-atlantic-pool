@@ -64,6 +64,15 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
+// Debug: confirm DATABASE_URL is set (does not reveal the value)
+app.get('/api/status', (req, res) => {
+  res.json({
+    ok: true,
+    databaseConfigured: !!process.env.DATABASE_URL,
+    nodeEnv: process.env.NODE_ENV || 'development',
+  });
+});
+
 // Database initialization endpoint (for production setup)
 const initDbHandler = async (req, res) => {
   try {
