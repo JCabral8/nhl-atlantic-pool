@@ -14,23 +14,26 @@ const usePostgres = !!process.env.DATABASE_URL;
 let db;
 
 if (usePostgres) {
-  // Use PostgreSQL
+  // Use PostgreSQL (required on Vercel; optional locally)
   const { Pool } = await import('pg');
   db = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
   });
 
-  // Test connection
+  // Test connection without crashing the serverless function (cold start timeouts can fail)
   try {
     await db.query('SELECT NOW()');
     console.log('✅ Connected to PostgreSQL');
   } catch (error) {
-    console.error('❌ PostgreSQL connection error:', error);
-    throw error;
+    console.error('❌ PostgreSQL connection error (non-fatal):', error.message);
+    // Do not throw: allow the function to load; first real request will get a proper error
   }
 } else {
-  // Use SQLite for local development (requires native build; often fails on Windows)
+  // SQLite only for local dev; Vercel/serverless requires DATABASE_URL
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    throw new Error('DATABASE_URL must be set on Vercel. Add it in Project Settings → Environment Variables, then redeploy.');
+  }
   try {
     const Database = (await import('better-sqlite3')).default;
     const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../database/nhl_pool.db');
