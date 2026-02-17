@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd frontend && npm ci && ./node_modules/.bin/vite build",
+  "buildCommand": "cd frontend && npm ci && PATH=\"$(pwd)/node_modules/.bin:$PATH\" npm run build",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --ignore-scripts",
   "rewrites": [
