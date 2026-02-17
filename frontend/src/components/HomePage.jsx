@@ -59,7 +59,7 @@ const InfoPaper = styled(Paper)(({ theme }) => ({
 
 const HomePage = () => {
   const navigate = useNavigate();
-  const { users, loading, setCurrentUser, API_BASE } = useApp();
+  const { users, loading, apiError, setCurrentUser, API_BASE } = useApp();
   const { isActive } = useDeadline();
   const [showWaiverModal, setShowWaiverModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -191,21 +191,26 @@ const HomePage = () => {
                 maxWidth: '600px',
               }}
             >
-              <Typography variant="h5" fontWeight="600" color="error" mb={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
-                ⚠️ Unable to Load Users
-              </Typography>
-              <Typography variant="body1" color="text.secondary" mb={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
-                Could not connect to the backend API.
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
-                API URL: {API_BASE}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" mt={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
-                Please check:
-                <br />• The backend is running
-                <br />• The VITE_API_URL environment variable is set correctly
-                <br />• CORS is configured properly
-              </Typography>
+              {apiError ? (
+                <>
+                  <Typography variant="h5" fontWeight="600" color="error" mb={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
+                    ⚠️ Unable to Load Users
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" mb={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
+                    Could not connect to the backend API.
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+                    API URL: {API_BASE}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" mt={2} sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
+                    Please check the backend is running and try again later.
+                  </Typography>
+                </>
+              ) : (
+                <Typography variant="body1" color="text.secondary" sx={{ fontFamily: 'Segoe UI, sans-serif' }}>
+                  No users in the pool yet.
+                </Typography>
+              )}
             </Paper>
           ) : (
             <Grid container spacing={4} sx={{ maxWidth: '1200px' }}>

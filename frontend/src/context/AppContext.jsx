@@ -15,12 +15,14 @@ export const AppProvider = ({ children }) => {
   const [standings, setStandings] = useState([]);
   const [deadline, setDeadline] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
   }, []);
 
   const fetchInitialData = async () => {
+    setApiError(false);
     try {
       console.log('Fetching data from API:', API_BASE);
       const [usersRes, standingsRes, deadlineRes] = await Promise.all([
@@ -63,7 +65,7 @@ export const AppProvider = ({ children }) => {
       console.error('Error fetching initial data:', error);
       console.error('API_BASE:', API_BASE);
       console.error('Error details:', error.response?.data || error.message);
-      // Set empty arrays on error so UI doesn't break
+      setApiError(true);
       setUsers([]);
       setStandings([]);
       setDeadline(null);
@@ -99,6 +101,8 @@ export const AppProvider = ({ children }) => {
         standings,
         deadline,
         loading,
+        apiError,
+        fetchInitialData,
         refreshStandings,
         refreshDeadline,
         API_BASE,
