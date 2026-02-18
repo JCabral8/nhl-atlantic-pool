@@ -1,24 +1,26 @@
-# Update NHL Atlantic Division standings and push to the app.
-# Runs daily and can be triggered manually. Uses GitHub's network to fetch NHL API.
+# Update NHL Atlantic Division standings and POST to the app.
+# Runs daily and on manual trigger. Needs STANDINGS_INGEST_SECRET in GitHub and Vercel.
 name: Update NHL Standings
 
 on:
   schedule:
-    # Run daily at 12:00 UTC (7am Eastern)
     - cron: '0 12 * * *'
   workflow_dispatch:
-    # Allow "Run workflow" from Actions tab
 
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Fetch standings and POST to app
+      - name: Update standings
         env:
-          STANDINGS_INGEST_URL: ${{ vars.STANDINGS_INGEST_URL || 'https://nhl-atlantic-pool.vercel.app' }}
+          STANDINGS_INGEST_URL: ${{ vars.STANDINGS_INGEST_URL }}
           STANDINGS_INGEST_SECRET: ${{ secrets.STANDINGS_INGEST_SECRET }}
         run: |
+          if [ -z "$STANDINGS_INGEST_SECRET" ]; then
+            echo "::error::STANDINGS_INGEST_SECRET is not set. Add it in repo Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          [ -n "$STANDINGS_INGEST_URL" ] || export STANDINGS_INGEST_URL=https://nhl-atlantic-pool.vercel.app
           node scripts/update-standings.js
