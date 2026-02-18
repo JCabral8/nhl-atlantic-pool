@@ -33,15 +33,14 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/users/:id/avatar - Get user avatar preferences
-// Accepts either numeric ID or user name (e.g., 'nick', 'justin', 'chris')
+// Accepts either numeric ID or user name (e.g., 'nick', 'justin', 'chris'); name lookup is case-insensitive
 router.get('/:id/avatar', async (req, res) => {
   try {
     const { id } = req.params;
-    // Try numeric ID first, then fall back to name
     const isNumeric = /^\d+$/.test(id);
     const query = isNumeric 
       ? 'SELECT avatar_preferences FROM users WHERE id = $1'
-      : 'SELECT avatar_preferences FROM users WHERE name = $1';
+      : 'SELECT avatar_preferences FROM users WHERE LOWER(name) = LOWER($1)';
     const user = await dbQuery.get(query, [id]);
     
     if (!user) {
@@ -71,11 +70,10 @@ router.put('/:id/avatar', async (req, res) => {
     }
     
     const preferencesJson = JSON.stringify(preferences);
-    // Try numeric ID first, then fall back to name
     const isNumeric = /^\d+$/.test(id);
     const query = isNumeric
       ? 'UPDATE users SET avatar_preferences = $1 WHERE id = $2'
-      : 'UPDATE users SET avatar_preferences = $1 WHERE name = $2';
+      : 'UPDATE users SET avatar_preferences = $1 WHERE LOWER(name) = LOWER($2)';
     const result = await dbQuery.run(query, [preferencesJson, id]);
     
     if (result.changes === 0) {
@@ -93,7 +91,9 @@ router.put('/:id/avatar', async (req, res) => {
 router.get('/:id/waiver', async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await dbQuery.get('SELECT waiver_accepted FROM users WHERE id = $1', [id]);
+    const isNumeric = /^\d+$/.test(id);
+    const query = isNumeric ? 'SELECT waiver_accepted FROM users WHERE id = $1' : 'SELECT waiver_accepted FROM users WHERE LOWER(name) = LOWER($1)';
+    const user = await dbQuery.get(query, [id]);
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -112,54 +112,31 @@ router.get('/:id/waiver', async (req, res) => {
   }
 });
 
-// PUT /api/users/:id/waiver - Accept waiver
+// PUT /api/users/:id/waiver - Accept waiver (id can be numeric or name, case-insensitive)
 router.put('/:id/waiver', async (req, res) => {
   try {
     const { id } = req.params;
+    const isNumeric = /^\d+$/.test(id);
+    const updateQuery = isNumeric
+      ? 'UPDATE users SET waiver_accepted = 1 WHERE id = $1'
+      : 'UPDATE users SET waiver_accepted = 1 WHERE LOWER(name) = LOWER($1)';
     
-    // First check if column exists, if not, add it
     try {
-      const result = await dbQuery.run(
-        'UPDATE users SET waiver_accepted = 1 WHERE id = $1',
-        [id]
-      );
-      
-      if (result.changes === 0) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
+      const result = await dbQuery.run(updateQuery, [id]);
+      if (result.changes === 0) return res.status(404).json({ error: 'User not found' });
       res.json({ success: true, waiverAccepted: true });
     } catch (error) {
-      // If column doesn't exist, try to add it and then update
       if (error.message && (error.message.includes('no such column') || error.message.includes('does not exist'))) {
         console.log('Waiver column does not exist, attempting to add it...');
         try {
-          // Try to add the column
           await dbQuery.run('ALTER TABLE users ADD COLUMN waiver_accepted INTEGER DEFAULT 0');
-          // Now try the update again
-          const result = await dbQuery.run(
-            'UPDATE users SET waiver_accepted = 1 WHERE id = $1',
-            [id]
-          );
-          
-          if (result.changes === 0) {
-            return res.status(404).json({ error: 'User not found' });
-          }
-          
+          const result = await dbQuery.run(updateQuery, [id]);
+          if (result.changes === 0) return res.status(404).json({ error: 'User not found' });
           res.json({ success: true, waiverAccepted: true, message: 'Column added and waiver accepted' });
         } catch (migrationError) {
-          // If adding column fails (maybe it's PostgreSQL and needs IF NOT EXISTS)
           if (migrationError.message && migrationError.message.includes('duplicate column')) {
-            // Column was added, try update again
-            const result = await dbQuery.run(
-              'UPDATE users SET waiver_accepted = 1 WHERE id = $1',
-              [id]
-            );
-            
-            if (result.changes === 0) {
-              return res.status(404).json({ error: 'User not found' });
-            }
-            
+            const result = await dbQuery.run(updateQuery, [id]);
+            if (result.changes === 0) return res.status(404).json({ error: 'User not found' });
             res.json({ success: true, waiverAccepted: true });
           } else {
             throw migrationError;

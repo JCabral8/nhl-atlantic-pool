@@ -247,17 +247,27 @@ const AdminPage = () => {
     }
   };
 
+  const fetchNHLStandings = async () => {
+    const url = 'https://statsapi.web.nhl.com/api/v1/standings';
+    try {
+      const res = await fetch(url, { headers: { Accept: 'application/json' } });
+      if (!res.ok) throw new Error(`NHL API returned ${res.status}`);
+      return await res.json();
+    } catch (e) {
+      // Fallback: some networks can't resolve NHL API; try CORS proxy
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error(`Standings fetch failed: ${res.status}`);
+      return await res.json();
+    }
+  };
+
   const handleUpdateStandings = async () => {
     setStandingsUpdateMessage(null);
     setStandingsUpdating(true);
     const adminPassword = sessionStorage.getItem('admin_authenticated') === 'true' ? 'hunter' : '';
     try {
-      // Fetch from NHL API in the browser (works; Vercel serverless cannot reach NHL API)
-      const nhlRes = await fetch('https://statsapi.web.nhl.com/api/v1/standings', {
-        headers: { Accept: 'application/json' },
-      });
-      if (!nhlRes.ok) throw new Error(`NHL API returned ${nhlRes.status}`);
-      const apiData = await nhlRes.json();
+      const apiData = await fetchNHLStandings();
       const standings = parseAtlanticStandings(apiData);
       if (standings.length === 0) throw new Error('No Atlantic Division teams in NHL response');
 
