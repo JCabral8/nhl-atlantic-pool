@@ -30,6 +30,9 @@ import {
   IconButton,
   Tooltip,
   Grid,
+  Select,
+  MenuItem,
+  FormControl,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -106,6 +109,10 @@ const AdminPage = () => {
     ATLANTIC_TEAMS_LIST.map((team) => ({ team, gp: 0, w: 0, l: 0, otl: 0, pts: 0 }))
   );
   const [manualSaving, setManualSaving] = useState(false);
+  const [predictionsGrid, setPredictionsGrid] = useState([]);
+  const [predictionsGridLoading, setPredictionsGridLoading] = useState(false);
+  const [predictionsSaveMessage, setPredictionsSaveMessage] = useState(null);
+  const [predictionsSaving, setPredictionsSaving] = useState(false);
 
   useEffect(() => {
     // Check if already authenticated (stored in sessionStorage)
@@ -119,6 +126,36 @@ const AdminPage = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!authenticated || !dbInfo?.tables) return;
+    let cancelled = false;
+    setPredictionsGridLoading(true);
+    (async () => {
+      try {
+        const [usersRes, predRes] = await Promise.all([
+          axios.get(`${API_BASE}/users`),
+          axios.get(`${API_BASE}/predictions/all`).catch(() => ({ data: [] })),
+        ]);
+        if (cancelled) return;
+        const users = Array.isArray(usersRes.data) ? usersRes.data : [];
+        const allPreds = Array.isArray(predRes.data) ? predRes.data : [];
+        const grid = users.map((u) => {
+          const pred = allPreds.find((p) => String(p.userId) === String(u.id) || p.userName === u.name);
+          const teams = pred?.predictions
+            ? [...Array(8)].map((_, i) => (pred.predictions.find((p) => p.rank === i + 1)?.team || ''))
+            : ['', '', '', '', '', '', '', ''];
+          return { userId: u.id, userName: u.name, teams };
+        });
+        setPredictionsGrid(grid);
+      } catch {
+        if (!cancelled) setPredictionsGrid([]);
+      } finally {
+        if (!cancelled) setPredictionsGridLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [authenticated, dbInfo?.tables, API_BASE]);
 
   const handlePasswordSubmit = async () => {
     if (!password.trim()) {
@@ -303,6 +340,41 @@ const AdminPage = () => {
       next[index] = { ...next[index], [field]: isNaN(n) ? 0 : n };
       return next;
     });
+  };
+
+  const handlePredictionsGridChange = (userIndex, rankIndex, team) => {
+    setPredictionsGrid((prev) => {
+      const next = prev.map((row, i) =>
+        i !== userIndex ? row : { ...row, teams: row.teams.map((t, j) => (j === rankIndex ? team : t)) }
+      );
+      return next;
+    });
+  };
+
+  const handleSavePredictions = async () => {
+    setPredictionsSaveMessage(null);
+    setPredictionsSaving(true);
+    const adminPassword = sessionStorage.getItem('admin_authenticated') === 'true' ? 'hunter' : '';
+    try {
+      let saved = 0;
+      for (const row of predictionsGrid) {
+        const teams = row.teams.filter(Boolean);
+        if (teams.length !== 8 || new Set(teams).size !== 8) continue;
+        const predictions = row.teams.map((team, i) => ({ team, rank: i + 1 }));
+        await axios.post(
+          `${API_BASE}/admin/predictions`,
+          { userId: row.userId, predictions },
+          { headers: { 'x-admin-password': adminPassword } }
+        );
+        saved++;
+      }
+      setPredictionsSaveMessage(saved ? `Saved predictions for ${saved} user(s).` : 'Fill all 8 positions with unique teams per user to save.');
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || 'Failed to save';
+      setPredictionsSaveMessage(typeof msg === 'string' ? msg : 'Failed to save');
+    } finally {
+      setPredictionsSaving(false);
+    }
   };
 
   const handleSaveManualStandings = async () => {
@@ -628,6 +700,84 @@ const AdminPage = () => {
                   >
                     {manualSaving ? 'Saving…' : 'Save manual standings'}
                   </Button>
+                </CardContent>
+              </StyledCard>
+            </Grid>
+
+            {/* Manual entry: user predictions (users x positions) */}
+            <Grid item xs={12}>
+              <StyledCard>
+                <CardContent>
+                  <Typography variant="h6" fontWeight="bold" sx={{ mb: 1 }}>
+                    User predictions (manual entry)
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Enter each user&apos;s predicted order (1–8) by choosing a team per position. Each user must have 8 unique teams.
+                  </Typography>
+                  {predictionsGridLoading ? (
+                    <Box display="flex" alignItems="center" gap={1} py={2}>
+                      <CircularProgress size={24} />
+                      <Typography variant="body2">Loading users and predictions…</Typography>
+                    </Box>
+                  ) : (
+                    <>
+                      <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto', mb: 2 }}>
+                        <Table size="small" stickyHeader>
+                          <TableHead>
+                            <TableRow>
+                              <TableCell sx={{ fontWeight: 600, minWidth: 100 }}>User</TableCell>
+                              {[1, 2, 3, 4, 5, 6, 7, 8].map((r) => (
+                                <TableCell key={r} align="center" sx={{ fontWeight: 600, minWidth: 140 }}>
+                                  Position {r}
+                                </TableCell>
+                              ))}
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {predictionsGrid.map((row, userIndex) => (
+                              <TableRow key={row.userId}>
+                                <TableCell sx={{ fontWeight: 500 }}>{row.userName}</TableCell>
+                                {row.teams.map((team, rankIndex) => (
+                                  <TableCell key={rankIndex} align="center" padding="none">
+                                    <FormControl size="small" sx={{ minWidth: 130, mx: 0.5 }}>
+                                      <Select
+                                        value={team || ''}
+                                        displayEmpty
+                                        onChange={(e) => handlePredictionsGridChange(userIndex, rankIndex, e.target.value)}
+                                        renderValue={(v) => v || '—'}
+                                      >
+                                        <MenuItem value="">—</MenuItem>
+                                        {ATLANTIC_TEAMS_LIST.map((t) => (
+                                          <MenuItem key={t} value={t}>{t}</MenuItem>
+                                        ))}
+                                      </Select>
+                                    </FormControl>
+                                  </TableCell>
+                                ))}
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                      <Button
+                        variant="contained"
+                        onClick={handleSavePredictions}
+                        disabled={predictionsSaving || predictionsGrid.length === 0}
+                        startIcon={predictionsSaving ? <CircularProgress size={18} /> : null}
+                      >
+                        {predictionsSaving ? 'Saving…' : 'Save predictions'}
+                      </Button>
+                      {predictionsSaveMessage && (
+                        <Alert
+                          severity={predictionsSaveMessage.startsWith('Saved') ? 'success' : 'info'}
+                          sx={{ mt: 2 }}
+                          onClose={() => setPredictionsSaveMessage(null)}
+                        >
+                          {predictionsSaveMessage}
+                        </Alert>
+                      )}
+                    </>
+                  )}
                 </CardContent>
               </StyledCard>
             </Grid>

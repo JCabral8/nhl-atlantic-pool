@@ -161,6 +161,34 @@ router.get('/database', checkPassword, async (req, res) => {
   }
 });
 
+// POST /api/admin/predictions - Save a user's predictions (bypasses deadline)
+router.post('/predictions', checkPassword, async (req, res) => {
+  try {
+    const { userId, predictions } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+    if (!predictions || !Array.isArray(predictions) || predictions.length !== 8) {
+      return res.status(400).json({ error: 'predictions must be an array of 8 items with team and rank' });
+    }
+    const teams = predictions.map((p) => p.team);
+    if (new Set(teams).size !== 8) return res.status(400).json({ error: 'All 8 teams must be unique' });
+    const ranks = predictions.map((p) => p.rank).sort((a, b) => a - b);
+    const expected = [1, 2, 3, 4, 5, 6, 7, 8];
+    if (JSON.stringify(ranks) !== JSON.stringify(expected)) {
+      return res.status(400).json({ error: 'Ranks must be 1 through 8' });
+    }
+    const now = new Date().toISOString();
+    await dbQuery.run(
+      `INSERT INTO predictions (user_id, predictions, submitted_at, last_updated)
+       VALUES ($1, $2, $3, $4)`,
+      [userId, JSON.stringify(predictions), now, now]
+    );
+    res.json({ success: true, message: 'Predictions saved', submittedAt: now });
+  } catch (error) {
+    console.error('Admin save predictions error:', error);
+    res.status(500).json({ error: error.message || 'Failed to save predictions' });
+  }
+});
+
 // GET /api/admin/database/:table - Get data from specific table
 router.get('/database/:table', checkPassword, async (req, res) => {
   try {
