@@ -89,19 +89,26 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// Proxy for NHL standings so the browser never touches the NHL domain (avoids ERR_NAME_NOT_RESOLVED)
+// Proxy for NHL standings (fallback if dedicated api/nhl-standings-proxy.js not hit)
 app.get('/api/nhl-standings-proxy', async (req, res) => {
   const nhlUrl = 'https://statsapi.web.nhl.com/api/v1/standings';
-  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(nhlUrl)}`;
-  try {
-    const proxyRes = await fetch(proxyUrl, { headers: { Accept: 'application/json' } });
-    if (!proxyRes.ok) throw new Error(`Proxy returned ${proxyRes.status}`);
-    const data = await proxyRes.json();
-    res.json(data);
-  } catch (e) {
-    console.error('NHL standings proxy error:', e.message);
-    res.status(502).json({ error: 'Could not load NHL standings', details: e.message });
+  const urls = [
+    `https://corsproxy.io/?${encodeURIComponent(nhlUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(nhlUrl)}`,
+  ];
+  let lastErr;
+  for (const proxyUrl of urls) {
+    try {
+      const proxyRes = await fetch(proxyUrl, { headers: { Accept: 'application/json' } });
+      if (!proxyRes.ok) throw new Error(`Proxy ${proxyRes.status}`);
+      const data = await proxyRes.json();
+      if (data && data.records) return res.json(data);
+    } catch (e) {
+      lastErr = e;
+    }
   }
+  console.error('NHL standings proxy error:', lastErr?.message);
+  res.status(502).json({ error: 'Could not load NHL standings', details: lastErr?.message || 'Proxy failed' });
 });
 
 // Database initialization endpoint (for production setup)
