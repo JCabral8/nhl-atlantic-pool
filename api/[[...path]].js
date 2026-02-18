@@ -6,14 +6,22 @@
 export default async function handler(req, res) {
   // Ensure Express sees path-only URL (Vercel sometimes sends full URL)
   const raw = req.url || req.originalUrl || '/';
-  if (!raw.startsWith('/')) {
+  let path = raw;
+  if (!path.startsWith('/')) {
     try {
       const u = new URL(raw);
-      req.url = u.pathname + (u.search || '');
+      path = u.pathname + (u.search || '');
     } catch (_) {
-      req.url = raw;
+      path = raw;
     }
   }
+  // Ensure path starts with /api for Express routes
+  if (!path.startsWith('/api') && path.startsWith('/')) {
+    // Vercel might strip /api prefix, add it back
+    path = '/api' + path;
+  }
+  req.url = path;
+  req.originalUrl = path;
   const { default: app } = await import('../backend/src/app.js');
   return new Promise((resolve, reject) => {
     res.on('finish', () => resolve());
