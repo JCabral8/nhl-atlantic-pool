@@ -9,28 +9,49 @@
  * We normalize to always start with "/api" before handing off to Express.
  */
 export default async function handler(req, res) {
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substring(7);
+  
   try {
+    // Comprehensive logging to diagnose Vercel routing
+    console.log(`[API Handler ${requestId}] Method: ${req.method}`);
+    console.log(`[API Handler ${requestId}] req.url: ${req.url}`);
+    console.log(`[API Handler ${requestId}] req.originalUrl: ${req.originalUrl}`);
+    console.log(`[API Handler ${requestId}] req.query:`, JSON.stringify(req.query));
+    console.log(`[API Handler ${requestId}] req.path: ${req.path}`);
+    
     // Vercel catch-all: /api/* routes here
-    // For catch-all routes [[...path]], Vercel may pass path segments in req.query.path
-    // or the path in req.url (which may or may not include /api prefix)
+    // For catch-all routes [[...path]], Vercel passes path segments in req.query.path as an array
+    // Example: /api/users/justin → req.query.path = ['users', 'justin']
     let path = '/';
     
-    // Check for catch-all path segments first (Vercel may use this)
-    if (req.query && req.query.path) {
+    // Check for catch-all path segments first (Vercel's primary method)
+    if (req.query && req.query.path !== undefined) {
       const pathSegments = Array.isArray(req.query.path) 
         ? req.query.path 
-        : [req.query.path];
-      path = '/api/' + pathSegments.join('/');
-    } else {
-      // Fallback to req.url
-      const raw = req.url || req.originalUrl || '/';
+        : typeof req.query.path === 'string' 
+          ? req.query.path.split('/').filter(s => s)
+          : [String(req.query.path)];
+      
+      if (pathSegments.length > 0) {
+        path = '/api/' + pathSegments.join('/');
+        console.log(`[API Handler ${requestId}] Using req.query.path, normalized to: ${path}`);
+      }
+    }
+    
+    // Fallback to req.url if query.path not available
+    if (path === '/') {
+      const raw = req.url || req.originalUrl || req.path || '/';
       path = raw;
+      
+      console.log(`[API Handler ${requestId}] Using req.url fallback, raw: ${raw}`);
       
       // Handle full URLs if present
       if (path.startsWith('http')) {
         try {
           const u = new URL(path);
           path = u.pathname + (u.search || '');
+          console.log(`[API Handler ${requestId}] Extracted pathname from URL: ${path}`);
         } catch {
           path = '/';
         }
@@ -45,6 +66,7 @@ export default async function handler(req, res) {
       // If path doesn't start with /api, add it back
       if (!path.startsWith('/api')) {
         path = '/api' + path;
+        console.log(`[API Handler ${requestId}] Added /api prefix: ${path}`);
       }
     }
     
@@ -60,19 +82,47 @@ export default async function handler(req, res) {
       }
     }
     
+    console.log(`[API Handler ${requestId}] Final normalized path: ${path}`);
+    
     req.url = path;
     req.originalUrl = path;
 
     const { default: app } = await import('../backend/src/app.js');
+    
     return new Promise((resolve, reject) => {
-      res.on('finish', () => resolve());
-      res.on('error', reject);
+      const handlerTimeout = setTimeout(() => {
+        if (!res.headersSent) {
+          console.error(`[API Handler ${requestId}] Timeout after 25s`);
+          res.status(504).json({ error: 'Request timeout' });
+          resolve();
+        }
+      }, 25000);
+      
+      res.on('finish', () => {
+        clearTimeout(handlerTimeout);
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+        console.log(`[API Handler ${requestId}] Completed in ${duration}s, status: ${res.statusCode}`);
+        resolve();
+      });
+      
+      res.on('error', (err) => {
+        clearTimeout(handlerTimeout);
+        console.error(`[API Handler ${requestId}] Response error:`, err);
+        reject(err);
+      });
+      
       app(req, res);
     });
   } catch (error) {
-    console.error('[API Handler] Error:', error);
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.error(`[API Handler ${requestId}] Error after ${duration}s:`, error);
+    console.error(`[API Handler ${requestId}] Stack:`, error.stack);
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Internal server error', details: error.message });
+      res.status(500).json({ 
+        error: 'Internal server error', 
+        details: error.message,
+        requestId 
+      });
     }
   }
 }

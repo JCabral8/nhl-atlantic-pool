@@ -78,6 +78,17 @@ app.get('/api/ping', (req, res) => {
   res.json({ pong: true });
 });
 
+// Test endpoint to verify routing works
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    ok: true, 
+    path: req.url,
+    originalUrl: req.originalUrl,
+    method: req.method,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Database initialization endpoint (for production setup)
 const initDbHandler = async (req, res) => {
   try {
