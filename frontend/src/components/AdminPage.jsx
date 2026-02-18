@@ -122,8 +122,8 @@ const AdminPage = () => {
       console.error('Error fetching database info:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Failed to fetch database information';
       setError(errorMsg);
-      // Set dbInfo to empty object so UI still renders
-      setDbInfo({ tables: [], error: errorMsg });
+      // Set dbInfo to null so error fallback renders
+      setDbInfo(null);
     } finally {
       setLoading(false);
     }
