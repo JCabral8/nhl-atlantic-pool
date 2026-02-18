@@ -54,10 +54,11 @@ const StyledCard = styled(Card)(({ theme }) => ({
 }));
 
 // Atlantic Division team names (must match backend)
-const ATLANTIC_TEAMS = new Set([
-  'Tampa Bay Lightning', 'Boston Bruins', 'Detroit Red Wings', 'Montreal Canadiens',
-  'Toronto Maple Leafs', 'Florida Panthers', 'Ottawa Senators', 'Buffalo Sabres',
-]);
+const ATLANTIC_TEAMS_LIST = [
+  'Boston Bruins', 'Buffalo Sabres', 'Detroit Red Wings', 'Florida Panthers',
+  'Montreal Canadiens', 'Ottawa Senators', 'Tampa Bay Lightning', 'Toronto Maple Leafs',
+];
+const ATLANTIC_TEAMS = new Set(ATLANTIC_TEAMS_LIST);
 
 /** Parse Atlantic Division from NHL API response (same shape as backend) */
 function parseAtlanticStandings(apiData) {
@@ -101,6 +102,10 @@ const AdminPage = () => {
   const [cronStatus, setCronStatus] = useState(null);
   const [cronTesting, setCronTesting] = useState(false);
   const [cronTestMessage, setCronTestMessage] = useState(null);
+  const [manualStandings, setManualStandings] = useState(() =>
+    ATLANTIC_TEAMS_LIST.map((team) => ({ team, gp: 0, w: 0, l: 0, otl: 0, pts: 0 }))
+  );
+  const [manualSaving, setManualSaving] = useState(false);
 
   useEffect(() => {
     // Check if already authenticated (stored in sessionStorage)
@@ -281,9 +286,55 @@ const AdminPage = () => {
     } catch (err) {
       const errorMsg = err.response?.data?.error || err.response?.data?.message;
       const errorStr = typeof errorMsg === 'string' ? errorMsg : (err.message || 'Failed to update standings');
-      setStandingsUpdateMessage(errorStr);
+      setStandingsUpdateMessage(
+        errorStr.includes('502') || errorStr.includes('Could not load')
+          ? 'Auto-fetch failed. Use the form below to enter standings manually.'
+          : errorStr
+      );
     } finally {
       setStandingsUpdating(false);
+    }
+  };
+
+  const handleManualStandingsChange = (index, field, value) => {
+    const n = Number(value);
+    setManualStandings((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: isNaN(n) ? 0 : n };
+      return next;
+    });
+  };
+
+  const handleSaveManualStandings = async () => {
+    setStandingsUpdateMessage(null);
+    setManualSaving(true);
+    const adminPassword = sessionStorage.getItem('admin_authenticated') === 'true' ? 'hunter' : '';
+    try {
+      const standings = manualStandings.map((s) => ({
+        team: s.team,
+        gp: Number(s.gp) || 0,
+        w: Number(s.w) || 0,
+        l: Number(s.l) || 0,
+        otl: Number(s.otl) || 0,
+        pts: Number(s.pts) || 0,
+      }));
+      const response = await axios.post(
+        `${API_BASE}/standings/update-now`,
+        { standings },
+        { headers: { 'x-admin-password': adminPassword } }
+      );
+      if (response.data.success) {
+        setStandingsUpdateMessage(`Standings saved (${response.data.updated ?? 8} teams).`);
+        fetchLastUpdated();
+        refreshStandings?.();
+      } else {
+        setStandingsUpdateMessage(response.data.message || response.data.error || 'Save failed');
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || err.response?.data?.message;
+      setStandingsUpdateMessage(typeof errorMsg === 'string' ? errorMsg : err.message || 'Failed to save');
+    } finally {
+      setManualSaving(false);
     }
   };
 
@@ -496,6 +547,87 @@ const AdminPage = () => {
                       {cronTestMessage}
                     </Alert>
                   )}
+
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ mt: 3, mb: 1 }}>
+                    Or enter standings manually
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    If auto-fetch fails, look up current Atlantic Division standings (e.g. NHL.com or ESPN) and enter points below.
+                  </Typography>
+                  <TableContainer component={Paper} variant="outlined" sx={{ mb: 2, maxWidth: 720 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell><strong>Team</strong></TableCell>
+                          <TableCell align="right">GP</TableCell>
+                          <TableCell align="right">W</TableCell>
+                          <TableCell align="right">L</TableCell>
+                          <TableCell align="right">OTL</TableCell>
+                          <TableCell align="right">Pts</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {manualStandings.map((row, index) => (
+                          <TableRow key={row.team}>
+                            <TableCell>{row.team}</TableCell>
+                            <TableCell align="right">
+                              <TextField
+                                type="number"
+                                size="small"
+                                inputProps={{ min: 0, style: { width: 56 } }}
+                                value={row.gp}
+                                onChange={(e) => handleManualStandingsChange(index, 'gp', e.target.value)}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <TextField
+                                type="number"
+                                size="small"
+                                inputProps={{ min: 0, style: { width: 56 } }}
+                                value={row.w}
+                                onChange={(e) => handleManualStandingsChange(index, 'w', e.target.value)}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <TextField
+                                type="number"
+                                size="small"
+                                inputProps={{ min: 0, style: { width: 56 } }}
+                                value={row.l}
+                                onChange={(e) => handleManualStandingsChange(index, 'l', e.target.value)}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <TextField
+                                type="number"
+                                size="small"
+                                inputProps={{ min: 0, style: { width: 56 } }}
+                                value={row.otl}
+                                onChange={(e) => handleManualStandingsChange(index, 'otl', e.target.value)}
+                              />
+                            </TableCell>
+                            <TableCell align="right">
+                              <TextField
+                                type="number"
+                                size="small"
+                                inputProps={{ min: 0, style: { width: 56 } }}
+                                value={row.pts}
+                                onChange={(e) => handleManualStandingsChange(index, 'pts', e.target.value)}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                  <Button
+                    variant="outlined"
+                    onClick={handleSaveManualStandings}
+                    disabled={manualSaving}
+                    startIcon={manualSaving ? <CircularProgress size={18} /> : null}
+                  >
+                    {manualSaving ? 'Saving…' : 'Save manual standings'}
+                  </Button>
                 </CardContent>
               </StyledCard>
             </Grid>
