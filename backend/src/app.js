@@ -255,6 +255,66 @@ const migrateDbHandler = async (req, res) => {
 app.get('/api/migrate', migrateDbHandler);
 app.post('/api/migrate', migrateDbHandler);
 
+// Cron status endpoint
+app.get('/api/cron/status', (req, res) => {
+  const timestamp = new Date().toISOString();
+  const cronSecretSet = !!process.env.CRON_SECRET;
+  const cronSecretLength = process.env.CRON_SECRET ? process.env.CRON_SECRET.length : 0;
+  
+  res.json({
+    configured: cronSecretSet,
+    cronSecretLength,
+    timestamp,
+    message: cronSecretSet 
+      ? 'CRON_SECRET is configured' 
+      : 'CRON_SECRET is not set. Add it in Vercel environment variables.',
+    schedule: 'Daily at 8:00 UTC (configured in vercel.json)',
+    endpoint: '/api/cron/standings',
+  });
+});
+
+app.post('/api/cron/status', async (req, res) => {
+  const timestamp = new Date().toISOString();
+  const ADMIN_PASSWORD = 'hunter';
+  const password = req.headers['x-admin-password'] || req.body?.password;
+  
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ 
+      success: false,
+      error: 'Unauthorized - Invalid admin password',
+      timestamp 
+    });
+  }
+  
+  if (!process.env.CRON_SECRET) {
+    return res.status(500).json({
+      success: false,
+      error: 'CRON_SECRET not configured. Set it in Vercel environment variables.',
+      timestamp,
+    });
+  }
+  
+  try {
+    const { updateStandings } = await import('./services/standingsUpdater.js');
+    const result = await updateStandings();
+    
+    res.json({
+      success: result.success || false,
+      message: 'Cron manually triggered',
+      result: result,
+      timestamp,
+    });
+  } catch (error) {
+    console.error('[Cron Status] Error triggering cron:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to trigger cron',
+      details: error.stack,
+      timestamp,
+    });
+  }
+});
+
 // Error handling
 app.use((err, req, res, next) => {
   if (typeof console !== 'undefined') console.error(err.stack);
