@@ -36,6 +36,11 @@ export default async function handler(req, res) {
     path += '?' + query;
   }
   
+  // Debug logging (will appear in Vercel function logs)
+  if (typeof console !== 'undefined') {
+    console.log(`[API Handler] Raw URL: ${raw}, Final path: ${path}, Method: ${req.method}`);
+  }
+  
   req.url = path;
   req.originalUrl = path;
   
