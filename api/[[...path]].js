@@ -4,20 +4,35 @@
  * Returns a Promise so the runtime waits for the response before freezing.
  */
 export default async function handler(req, res) {
-  // Vercel passes the path after /api to the catch-all handler
-  // e.g., /api/admin/auth -> req.url is /admin/auth
-  // We need to restore the /api prefix for Express routes
-  const raw = req.url || '/';
-  let path = raw.startsWith('/') ? raw : '/' + raw;
+  // Vercel catch-all: /api/* routes here
+  // req.url might be full path (/api/admin/auth) or relative (/admin/auth)
+  const raw = req.url || req.originalUrl || req.path || '/';
+  let path = raw;
   
-  // If path doesn't start with /api, add it (Vercel strips /api prefix)
+  // Handle full URLs if present
+  if (path.startsWith('http')) {
+    try {
+      const u = new URL(path);
+      path = u.pathname + (u.search || '');
+    } catch (_) {
+      path = '/';
+    }
+  }
+  
+  // Ensure path starts with /
+  if (!path.startsWith('/')) {
+    path = '/' + path;
+  }
+  
+  // Vercel may strip /api prefix for files in api/ directory
+  // If path doesn't start with /api, add it back (unless it's already there)
   if (!path.startsWith('/api')) {
     path = '/api' + path;
   }
   
-  // Preserve query string if present
-  const query = req.url?.includes('?') ? req.url.split('?')[1] : '';
-  if (query) {
+  // Preserve query string
+  const query = raw.includes('?') ? raw.split('?')[1] : '';
+  if (query && !path.includes('?')) {
     path += '?' + query;
   }
   
