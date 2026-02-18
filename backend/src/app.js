@@ -305,25 +305,12 @@ app.post('/api/cron/status', async (req, res) => {
     });
   }
   
-  try {
-    const { updateStandings } = await import('./services/standingsUpdater.js');
-    const result = await updateStandings();
-    
-    res.json({
-      success: result.success || false,
-      message: 'Cron manually triggered',
-      result: result,
-      timestamp,
-    });
-  } catch (error) {
-    console.error('[Cron Status] Error triggering cron:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Failed to trigger cron',
-      details: error.stack,
-      timestamp,
-    });
-  }
+  // Server cannot reach NHL API from Vercel. Standings are updated only via Admin page (browser fetch).
+  res.json({
+    success: true,
+    message: 'Standings are updated from the Admin page only (use "Update NHL standings" button). Server cannot reach NHL API.',
+    timestamp,
+  });
 });
 
 // Error handling

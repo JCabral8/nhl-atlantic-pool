@@ -51,43 +51,14 @@ export default async function handler(req, res) {
     });
   }
 
-  console.log('[Cron Standings] Authentication successful, starting standings update...');
-
-  try {
-    const { updateStandings } = await import('../../backend/src/services/standingsUpdater.js');
-    const result = await updateStandings();
-    
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    
-    if (result.success) {
-      console.log(`[Cron Standings] ✅ Successfully updated ${result.updated || 0} teams in ${duration}s`);
-      res.status(200).json({
-        ...result,
-        timestamp,
-        duration: `${duration}s`,
-        source: 'cron',
-      });
-    } else {
-      console.error(`[Cron Standings] ❌ Update failed: ${result.error || 'Unknown error'}`);
-      res.status(500).json({
-        ...result,
-        timestamp,
-        duration: `${duration}s`,
-        source: 'cron',
-      });
-    }
-  } catch (error) {
-    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-    console.error(`[Cron Standings] ❌ Exception after ${duration}s:`, error);
-    console.error('[Cron Standings] Stack:', error.stack);
-    
-    res.status(500).json({
-      success: false,
-      error: error.message || 'Unknown error occurred',
-      details: error.stack,
-      timestamp,
-      duration: `${duration}s`,
-      source: 'cron',
-    });
-  }
+  // NHL API is unreachable from Vercel serverless. Standings are updated only via Admin page.
+  const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+  console.log('[Cron Standings] No-op: use Admin page "Update NHL standings" to update.');
+  res.status(200).json({
+    success: true,
+    message: 'Standings are updated from the Admin page only. Use "Update NHL standings" button.',
+    timestamp,
+    duration: `${duration}s`,
+    source: 'cron',
+  });
 }

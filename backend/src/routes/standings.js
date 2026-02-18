@@ -1,6 +1,6 @@
 import express from 'express';
 import { dbQuery } from '../database/dbAdapter.js';
-import { updateStandings, updateStandingsInDB } from '../services/standingsUpdater.js';
+import { updateStandingsInDB } from '../services/standingsUpdater.js';
 
 const router = express.Router();
 
@@ -68,53 +68,35 @@ router.get('/last-updated', async (req, res) => {
   }
 });
 
-// POST /api/standings/update-now - Manually trigger standings update (admin or cron)
-// Accepts optional body.standings (array of { team, gp, w, l, otl, pts }) so the client
-// can fetch from NHL API (works from browser) and send data — avoids Vercel serverless fetch limits.
+// POST /api/standings/update-now - Save standings (client must send body.standings)
+// Server does not fetch NHL API (unreachable from Vercel). Use Admin page "Update NHL standings" button.
 router.post('/update-now', checkAdmin, async (req, res) => {
   try {
-    const providedStandings = req.body?.standings;
-    let result;
-
-    if (Array.isArray(providedStandings) && providedStandings.length > 0) {
-      // Client provided standings (e.g. fetched in browser from NHL API)
-      const valid = providedStandings.every(
-        (s) => s && typeof s.team === 'string' && typeof s.gp === 'number' && typeof s.pts === 'number'
-      );
-      if (!valid) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid standings format. Need array of { team, gp, w, l, otl, pts }.',
-        });
-      }
-      console.log('🔄 Standings update from client-provided data');
-      await updateStandingsInDB(providedStandings);
-      result = { success: true, updated: providedStandings.length };
-    } else {
-      // Server-side fetch (may fail on Vercel due to NHL API unreachable)
-      console.log('🔄 Manual standings update (server fetch)');
-      result = await updateStandings();
-    }
-
-    if (result.success) {
-      res.json({
-        success: true,
-        message: 'Standings updated successfully',
-        ...result,
-      });
-    } else {
-      res.status(500).json({
+    const standings = req.body?.standings;
+    if (!Array.isArray(standings) || standings.length === 0) {
+      return res.status(400).json({
         success: false,
-        message: 'Standings update failed',
-        ...result,
+        error: 'Standings must be provided. Use the Admin page "Update NHL standings" button.',
       });
     }
-  } catch (error) {
-    console.error('Error in manual standings update:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message,
+    const valid = standings.every(
+      (s) => s && typeof s.team === 'string' && typeof s.gp === 'number' && typeof s.pts === 'number'
+    );
+    if (!valid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid standings format. Need array of { team, gp, w, l, otl, pts }.',
+      });
+    }
+    await updateStandingsInDB(standings);
+    res.json({
+      success: true,
+      message: 'Standings updated successfully',
+      updated: standings.length,
     });
+  } catch (error) {
+    console.error('Error saving standings:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

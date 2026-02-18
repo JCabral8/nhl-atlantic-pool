@@ -417,7 +417,7 @@ const AdminPage = () => {
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Fetch latest Atlantic Division standings from the NHL API and save to the database.
+                    Click the button to fetch latest Atlantic Division standings (from your browser) and save to the database.
                   </Typography>
                   
                   {lastUpdated && (
