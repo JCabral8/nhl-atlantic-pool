@@ -189,7 +189,7 @@ const AdminPage = () => {
       <Box sx={{ backgroundColor: 'background.default', minHeight: '100vh' }}>
         <Header />
         <StyledContainer maxWidth="sm">
-          <Dialog open={passwordModalOpen} onClose={() => {}} maxWidth="xs" fullWidth>
+          <Dialog open={passwordModalOpen} onClose={() => {}} maxWidth="xs" fullWidth disableEscapeKeyDown>
             <DialogTitle>
               <Box display="flex" alignItems="center" gap={1}>
                 <LockIcon />
@@ -237,6 +237,11 @@ const AdminPage = () => {
     <Box sx={{ backgroundColor: 'background.default', minHeight: '100vh' }}>
       <Header />
       <StyledContainer maxWidth="xl">
+        {!dbInfo && !loading && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Click the refresh button to load database information.
+          </Alert>
+        )}
         <Box mb={4}>
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h4" component="h1" fontWeight="bold">
@@ -468,7 +473,16 @@ const AdminPage = () => {
             </Grid>
           </Grid>
         ) : (
-          <Alert severity="warning">No database information available</Alert>
+          <StyledCard>
+            <CardContent>
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                No database information available. Click refresh to try again.
+              </Alert>
+              <Button variant="contained" onClick={fetchDatabaseInfo} disabled={loading}>
+                Refresh Database Info
+              </Button>
+            </CardContent>
+          </StyledCard>
         )}
       </StyledContainer>
     </Box>
