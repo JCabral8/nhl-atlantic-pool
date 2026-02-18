@@ -4,6 +4,15 @@ import { updateStandings } from '../services/standingsUpdater.js';
 
 const router = express.Router();
 
+const ADMIN_PASSWORD = 'hunter';
+const checkAdmin = (req, res, next) => {
+  const password = req.headers['x-admin-password'] || req.body?.password;
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: 'Unauthorized - Invalid password' });
+  }
+  next();
+};
+
 // GET /api/standings - Get current standings
 router.get('/', async (req, res) => {
   try {
@@ -30,8 +39,37 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/standings/update-now - Manually trigger standings update (for testing)
-router.post('/update-now', async (req, res) => {
+// GET /api/standings/last-updated - Get timestamp of last standings update
+router.get('/last-updated', async (req, res) => {
+  try {
+    const result = await dbQuery.get(`
+      SELECT MAX(last_updated) as last_updated
+      FROM standings
+    `);
+    
+    if (result && result.last_updated) {
+      res.json({
+        lastUpdated: result.last_updated,
+        timestamp: result.last_updated,
+      });
+    } else {
+      res.json({
+        lastUpdated: null,
+        timestamp: null,
+        message: 'No standings data found',
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching last updated timestamp:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch last updated timestamp',
+      details: error.message 
+    });
+  }
+});
+
+// POST /api/standings/update-now - Manually trigger standings update (admin or cron)
+router.post('/update-now', checkAdmin, async (req, res) => {
   try {
     console.log('🔄 Manual standings update triggered');
     const result = await updateStandings();

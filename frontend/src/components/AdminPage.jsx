@@ -66,6 +66,10 @@ const AdminPage = () => {
   const [loadingTable, setLoadingTable] = useState({});
   const [standingsUpdating, setStandingsUpdating] = useState(false);
   const [standingsUpdateMessage, setStandingsUpdateMessage] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [cronStatus, setCronStatus] = useState(null);
+  const [cronTesting, setCronTesting] = useState(false);
+  const [cronTestMessage, setCronTestMessage] = useState(null);
 
   useEffect(() => {
     // Check if already authenticated (stored in sessionStorage)
@@ -74,6 +78,8 @@ const AdminPage = () => {
       setAuthenticated(true);
       setPasswordModalOpen(false);
       fetchDatabaseInfo();
+      fetchLastUpdated();
+      fetchCronStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -166,6 +172,50 @@ const AdminPage = () => {
     setTableData({});
   };
 
+  const fetchLastUpdated = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/standings/last-updated`);
+      setLastUpdated(response.data.lastUpdated || response.data.timestamp || null);
+    } catch (error) {
+      console.error('Error fetching last updated:', error);
+      setLastUpdated(null);
+    }
+  };
+
+  const fetchCronStatus = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/cron/status`);
+      setCronStatus(response.data);
+    } catch (error) {
+      console.error('Error fetching cron status:', error);
+      setCronStatus({ configured: false, error: error.message });
+    }
+  };
+
+  const handleTestCron = async () => {
+    setCronTestMessage(null);
+    setCronTesting(true);
+    try {
+      const adminPassword = sessionStorage.getItem('admin_authenticated') === 'true' ? 'hunter' : '';
+      const response = await axios.post(`${API_BASE}/cron/status`, {}, {
+        headers: { 'x-admin-password': adminPassword },
+      });
+      if (response.data.success) {
+        setCronTestMessage(`Cron test successful: ${response.data.result?.updated ?? 0} teams updated.`);
+        fetchLastUpdated();
+        refreshStandings?.();
+      } else {
+        setCronTestMessage(response.data.error || response.data.message || 'Cron test failed');
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.error || err.response?.data?.message;
+      const errorStr = typeof errorMsg === 'string' ? errorMsg : (err.message || 'Failed to test cron');
+      setCronTestMessage(errorStr);
+    } finally {
+      setCronTesting(false);
+    }
+  };
+
   const handleUpdateStandings = async () => {
     setStandingsUpdateMessage(null);
     setStandingsUpdating(true);
@@ -176,6 +226,7 @@ const AdminPage = () => {
       });
       if (response.data.success) {
         setStandingsUpdateMessage(`Standings updated successfully (${response.data.updated ?? 0} teams).`);
+        fetchLastUpdated();
         refreshStandings?.();
       } else {
         setStandingsUpdateMessage(response.data.message || response.data.error || 'Update failed');
@@ -326,14 +377,59 @@ const AdminPage = () => {
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     Fetch latest Atlantic Division standings from the NHL API and save to the database.
                   </Typography>
-                  <Button
-                    variant="contained"
-                    onClick={handleUpdateStandings}
-                    disabled={standingsUpdating}
-                    startIcon={standingsUpdating ? <CircularProgress size={20} /> : <UpdateIcon />}
-                  >
-                    {standingsUpdating ? 'Updating…' : 'Update NHL standings'}
-                  </Button>
+                  
+                  {lastUpdated && (
+                    <Box mb={2}>
+                      <Typography variant="body2" color="text.secondary">
+                        Last updated: {new Date(lastUpdated).toLocaleString()}
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  <Box display="flex" gap={2} flexWrap="wrap" mb={2}>
+                    <Button
+                      variant="contained"
+                      onClick={handleUpdateStandings}
+                      disabled={standingsUpdating}
+                      startIcon={standingsUpdating ? <CircularProgress size={20} /> : <UpdateIcon />}
+                    >
+                      {standingsUpdating ? 'Updating…' : 'Update NHL standings'}
+                    </Button>
+                    
+                    <Button
+                      variant="outlined"
+                      onClick={handleTestCron}
+                      disabled={cronTesting || !cronStatus?.configured}
+                      startIcon={cronTesting ? <CircularProgress size={20} /> : null}
+                    >
+                      {cronTesting ? 'Testing…' : 'Test Cron Job'}
+                    </Button>
+                    
+                    <Button
+                      variant="text"
+                      onClick={() => { fetchLastUpdated(); fetchCronStatus(); }}
+                      size="small"
+                    >
+                      Refresh Status
+                    </Button>
+                  </Box>
+                  
+                  {cronStatus && (
+                    <Box mb={2}>
+                      <Chip
+                        label={cronStatus.configured ? 'Cron configured' : 'Cron not configured'}
+                        color={cronStatus.configured ? 'success' : 'warning'}
+                        size="small"
+                        sx={{ mr: 1 }}
+                      />
+                      {cronStatus.configured && (
+                        <Typography variant="caption" color="text.secondary" component="span">
+                          {cronStatus.schedule}
+                        </Typography>
+                      )}
+                    </Box>
+                  )}
+                  
                   {standingsUpdateMessage && (
                     <Alert
                       severity={standingsUpdateMessage.startsWith('Standings updated') ? 'success' : 'error'}
@@ -341,6 +437,16 @@ const AdminPage = () => {
                       onClose={() => setStandingsUpdateMessage(null)}
                     >
                       {standingsUpdateMessage}
+                    </Alert>
+                  )}
+                  
+                  {cronTestMessage && (
+                    <Alert
+                      severity={cronTestMessage.includes('successful') ? 'success' : 'error'}
+                      sx={{ mt: 2 }}
+                      onClose={() => setCronTestMessage(null)}
+                    >
+                      {cronTestMessage}
                     </Alert>
                   )}
                 </CardContent>

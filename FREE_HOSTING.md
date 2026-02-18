@@ -29,6 +29,7 @@ Host the app for free using **GitHub** + **Vercel** (frontend and API) + **Supab
    - `DATABASE_URL` = your Supabase connection string (Transaction/pooler URI, port 6543)
    - `NODE_ENV` = `production`
    - `FRONTEND_URL` = `https://nhl-atlantic-pool.vercel.app`
+   - `CRON_SECRET` = optional; required for automatic standings cron (use a random string 16+ chars).
    - Add these for **Production** and **Preview** (or enable “Apply to Preview”) so preview deployments work.
 5. Deploy. Your app will be at **https://nhl-atlantic-pool.vercel.app**.
 
@@ -46,12 +47,35 @@ That creates the tables in Supabase. Safe to run again (idempotent).
 
 ---
 
-## 4. Standings updates (optional)
+## 4. Standings updates
 
-The API runs as serverless functions, so there is no long-lived process for `node-cron`. You can:
+- **Manual:** In the app, go to **Admin**, then use the **Update NHL standings** button to fetch the latest Atlantic Division standings from the NHL API and save them to the database.
+- **Automatic (optional):** A Vercel Cron job is configured to call `/api/cron/standings` daily (8:00 UTC). Add a **`CRON_SECRET`** environment variable in Vercel (Settings → Environment Variables): use a random string of at least 16 characters. Vercel sends it as a Bearer token when invoking the cron; the endpoint rejects requests without it.
 
-- Update standings manually from the Admin page (if available), or
-- Add a Vercel Cron job later (e.g. a serverless function that runs on a schedule and updates standings).
+### Setting up automatic standings updates
+
+1. **Set CRON_SECRET:**
+   - In Vercel dashboard → Project → Settings → Environment Variables
+   - Add `CRON_SECRET` with a random string (at least 16 characters)
+   - Example: `openssl rand -hex 16` or use a password generator
+   - Apply to **Production** environment (cron only runs on production)
+
+2. **Verify cron configuration:**
+   - Visit `https://your-app.vercel.app/api/cron/status` to check if `CRON_SECRET` is configured
+   - In Admin page, you'll see cron status and can test the cron job manually
+
+3. **Check cron execution:**
+   - Vercel Cron jobs run on Production deployments only
+   - Schedule: Daily at 8:00 AM UTC (configured in `vercel.json`)
+   - View logs: Vercel Dashboard → Deployments → Functions → `api/cron/standings`
+   - Check last update time: Admin page shows "Last updated" timestamp
+
+4. **Troubleshooting cron:**
+   - **Cron not running:** Ensure `CRON_SECRET` is set in Production environment (not Preview)
+   - **401 Unauthorized:** Verify `CRON_SECRET` matches between Vercel env vars and what the endpoint expects
+   - **No logs:** Check Vercel Functions logs under Deployments tab
+   - **Test manually:** Use "Test Cron Job" button in Admin page to verify the endpoint works
+   - **Check last updated:** Use "Refresh Status" button or visit `/api/standings/last-updated`
 
 ---
 
