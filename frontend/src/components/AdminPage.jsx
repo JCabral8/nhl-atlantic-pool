@@ -277,7 +277,7 @@ const AdminPage = () => {
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
             <CircularProgress />
           </Box>
-        ) : dbInfo || !loading ? (
+        ) : dbInfo && !dbInfo.error ? (
           <Grid container spacing={3}>
             {/* Database Connection Info */}
             <Grid item xs={12}>
