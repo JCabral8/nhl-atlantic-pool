@@ -290,24 +290,24 @@ const AdminPage = () => {
                     </Typography>
                   </Box>
                   <Box display="flex" gap={2} flexWrap="wrap">
-                    <Chip 
-                      label={`Type: ${dbInfo.databaseType}`} 
-                      color="primary" 
-                      variant="outlined" 
-                    />
-                    <Chip 
-                      label={`Status: ${dbInfo.connectionStatus}`} 
-                      color={dbInfo.connectionStatus === 'connected' ? 'success' : 'error'}
-                      variant="outlined"
-                    />
-                    <Chip 
-                      label={`Database: ${dbInfo.databaseName}`} 
-                      variant="outlined" 
-                    />
-                    <Chip 
-                      label={`Tables: ${dbInfo.tables?.length || 0}`} 
-                      variant="outlined" 
-                    />
+                  <Chip 
+                    label={`Type: ${dbInfo?.databaseType || 'Unknown'}`} 
+                    color="primary" 
+                    variant="outlined" 
+                  />
+                  <Chip 
+                    label={`Status: ${dbInfo?.connectionStatus || 'unknown'}`} 
+                    color={dbInfo?.connectionStatus === 'connected' ? 'success' : 'error'}
+                    variant="outlined"
+                  />
+                  <Chip 
+                    label={`Database: ${dbInfo?.databaseName || 'N/A'}`} 
+                    variant="outlined" 
+                  />
+                  <Chip 
+                    label={`Tables: ${dbInfo?.tables?.length || 0}`} 
+                    variant="outlined" 
+                  />
                   </Box>
                 </CardContent>
               </StyledCard>
