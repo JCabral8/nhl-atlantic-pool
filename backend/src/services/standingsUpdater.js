@@ -107,7 +107,7 @@ const updateStandingsInDB = async (standings) => {
   }
 
   const now = new Date().toISOString();
-  const usePostgres = process.env.DATABASE_URL && process.env.NODE_ENV === 'production';
+  const usePostgres = !!process.env.DATABASE_URL;
 
   try {
     for (const standing of standings) {
