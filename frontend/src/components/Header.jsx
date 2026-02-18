@@ -63,6 +63,24 @@ const Header = () => {
 
         <Box sx={{ flexGrow: 1 }} />
 
+        <Button
+          variant="outlined"
+          onClick={() => navigate('/admin')}
+          sx={{
+            borderColor: 'rgba(255, 255, 255, 0.5)',
+            color: 'white',
+            mr: currentUser ? 1 : 0,
+            '&:hover': {
+              borderColor: 'rgba(255, 255, 255, 0.8)',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            },
+            fontFamily: 'Segoe UI, sans-serif',
+            fontWeight: 600,
+          }}
+        >
+          Admin
+        </Button>
+
         {currentUser && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ position: 'relative' }}>

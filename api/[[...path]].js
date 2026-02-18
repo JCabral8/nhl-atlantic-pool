@@ -6,34 +6,57 @@
 export default async function handler(req, res) {
   try {
     // Vercel catch-all: /api/* routes here
-    // req.url contains the path after /api (e.g., /admin/auth for /api/admin/auth)
-    // We need to restore the /api prefix for Express routes
-    let path = req.url || req.originalUrl || '/';
+    // For catch-all routes [[...path]], Vercel may pass segments in req.query.path
+    // or the path in req.url (which may or may not include /api prefix)
+    let path = '/';
     
-    // Handle full URLs if present
-    if (path.startsWith('http')) {
-      try {
-        const u = new URL(path);
-        path = u.pathname + (u.search || '');
-      } catch (_) {
-        path = '/';
+    // Check for catch-all path segments first
+    if (req.query && req.query.path) {
+      const pathSegments = Array.isArray(req.query.path) 
+        ? req.query.path 
+        : [req.query.path];
+      path = '/api/' + pathSegments.join('/');
+    } else {
+      // Fallback to req.url
+      path = req.url || req.originalUrl || '/';
+      
+      // Handle full URLs if present
+      if (path.startsWith('http')) {
+        try {
+          const u = new URL(path);
+          path = u.pathname + (u.search || '');
+        } catch (_) {
+          path = '/';
+        }
+      }
+      
+      // Ensure path starts with /
+      if (!path.startsWith('/')) {
+        path = '/' + path;
+      }
+      
+      // Vercel strips /api prefix for files in api/ directory
+      // If path doesn't start with /api, add it back
+      if (!path.startsWith('/api')) {
+        path = '/api' + path;
       }
     }
     
-    // Ensure path starts with /
-    if (!path.startsWith('/')) {
-      path = '/' + path;
-    }
-    
-    // Vercel strips /api prefix for files in api/ directory
-    // If path doesn't start with /api, add it back
-    if (!path.startsWith('/api')) {
-      path = '/api' + path;
+    // Preserve query string (excluding catch-all path param)
+    const originalUrl = req.url || '';
+    if (originalUrl.includes('?')) {
+      const queryPart = originalUrl.split('?')[1];
+      const params = new URLSearchParams(queryPart);
+      params.delete('path'); // Remove catch-all path param
+      const remainingQuery = params.toString();
+      if (remainingQuery) {
+        path = path.split('?')[0] + '?' + remainingQuery;
+      }
     }
     
     // Debug logging (will appear in Vercel function logs)
     if (typeof console !== 'undefined') {
-      console.log(`[API Handler] req.url: ${req.url}, Final path: ${path}, Method: ${req.method}`);
+      console.log(`[API Handler] req.url: ${req.url}, req.query: ${JSON.stringify(req.query)}, Final path: ${path}, Method: ${req.method}`);
     }
     
     req.url = path;
