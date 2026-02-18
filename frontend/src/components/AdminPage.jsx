@@ -202,24 +202,27 @@ const AdminPage = () => {
               </Box>
             </DialogTitle>
             <DialogContent>
-              <TextField
-                autoFocus
-                margin="dense"
-                label="Password"
-                type="password"
-                fullWidth
-                variant="outlined"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handlePasswordSubmit();
-                  }
-                }}
-                error={!!error}
-                helperText={error}
-                sx={{ mt: 2 }}
-              />
+              <form onSubmit={(e) => { e.preventDefault(); handlePasswordSubmit(); }}>
+                <TextField
+                  autoFocus
+                  margin="dense"
+                  label="Password"
+                  type="password"
+                  fullWidth
+                  variant="outlined"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handlePasswordSubmit();
+                    }
+                  }}
+                  error={!!error}
+                  helperText={error}
+                  sx={{ mt: 2 }}
+                />
+              </form>
             </DialogContent>
             <DialogActions>
               <Button onClick={() => navigate('/')}>Cancel</Button>
