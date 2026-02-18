@@ -1,6 +1,7 @@
 /**
  * Catch-all handler for /api/users/* routes, specifically for avatar endpoints.
  * Handles routes like /api/users/justin/avatar, /api/users/nick/avatar, etc.
+ * For /api/users (no sub-path), this won't match and will fall through to main catch-all.
  */
 export default async function handler(req, res) {
   try {
@@ -12,25 +13,19 @@ export default async function handler(req, res) {
         ? pathSegments.split('/').filter(Boolean)
         : [];
     
-    // Only handle avatar routes (e.g., /api/users/justin/avatar)
-    if (segments.length === 2 && segments[1] === 'avatar') {
-      const userName = segments[0];
-      
-      // Forward to Express users router
-      req.url = `/api/users/${userName}/avatar`;
-      req.originalUrl = `/api/users/${userName}/avatar`;
-      
-      const { default: app } = await import('../../backend/src/app.js');
-      return new Promise((resolve, reject) => {
-        res.on('finish', () => resolve());
-        res.on('error', reject);
-        app(req, res);
-      });
-    }
+    // Build the full path
+    const fullPath = '/api/users/' + segments.join('/');
     
-    // For other /api/users/* routes, let the main catch-all handle it
-    // Return 404 to let Vercel fall through to the main catch-all
-    res.status(404).json({ error: 'Not found' });
+    // Forward to Express users router
+    req.url = fullPath;
+    req.originalUrl = fullPath;
+    
+    const { default: app } = await import('../../backend/src/app.js');
+    return new Promise((resolve, reject) => {
+      res.on('finish', () => resolve());
+      res.on('error', reject);
+      app(req, res);
+    });
   } catch (error) {
     console.error('Users catch-all handler error:', error);
     if (!res.headersSent) {
