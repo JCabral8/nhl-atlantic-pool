@@ -66,7 +66,15 @@ Standings are updated automatically by a **GitHub Actions** workflow that runs d
 
 After that, the workflow **Update NHL Standings** runs daily at 12:00 UTC. To run it now: GitHub repo → **Actions** → **Update NHL Standings** → **Run workflow**.
 
-- **Manual fallback:** Admin page → **Update NHL standings** (or use the manual standings form if auto-fetch fails).
+**If the GitHub Action never works**, run the update from your own computer (your network may reach the NHL API):
+
+1. In the repo folder, set the same secret you used in Vercel, and your app URL:
+   - Windows (PowerShell): `$env:STANDINGS_INGEST_SECRET="your-secret"; $env:STANDINGS_INGEST_URL="https://nhl-atlantic-pool.vercel.app"`
+   - Mac/Linux: `export STANDINGS_INGEST_SECRET="your-secret"` (and optionally `STANDINGS_INGEST_URL` if different)
+2. Run: **`npm run update-standings`** (or `node scripts/update-standings.js`).  
+   This fetches NHL standings and POSTs them to your app. Run it whenever you want to refresh standings.
+
+- **Manual fallback:** Admin page → use the **manual standings form** (enter GP/W/L/OTL/Pts per team and click Save).
 
 ---
 

@@ -548,7 +548,7 @@ const AdminPage = () => {
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Standings are updated daily by GitHub Actions. To update now: try the button below, or use the manual form (if the button returns an error, the form always works).
+                    To update now: use the manual form below (always works), or run from your computer in the repo folder: <code style={{ fontSize: '0.85em' }}>npm run update-standings</code> (set env STANDINGS_INGEST_SECRET and optionally STANDINGS_INGEST_URL first).
                   </Typography>
                   
                   {lastUpdated && (

@@ -13,20 +13,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Probe ingest endpoint
+        id: probe
+        env:
+          STANDINGS_INGEST_URL: ${{ vars.STANDINGS_INGEST_URL }}
+          STANDINGS_INGEST_SECRET: ${{ secrets.STANDINGS_INGEST_SECRET }}
+        run: |
+          URL="${STANDINGS_INGEST_URL:-https://nhl-atlantic-pool.vercel.app}"
+          URL="${URL%/}/api/standings/ingest"
+          echo "Probing: $URL"
+          if [ -z "$STANDINGS_INGEST_SECRET" ]; then
+            echo "status=no_secret" >> $GITHUB_OUTPUT
+            echo "*** GitHub secret STANDINGS_INGEST_SECRET is not set. Add it in repo Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          RES=$(curl -s -o /tmp/ingest_body.txt -w "%{http_code}" -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer wrong_token" \
+            -d '{"standings":[]}' 2>/dev/null || echo "000")
+          BODY=$(head -c 300 /tmp/ingest_body.txt 2>/dev/null)
+          echo "Response: $RES"
+          echo "Body: $BODY"
+          echo "status=$RES" >> $GITHUB_OUTPUT
+          if [ "$RES" = "401" ]; then
+            echo "Endpoint is reachable (401 = auth required). Real update will use your secret."
+          elif [ "$RES" = "503" ]; then
+            echo "*** 503: Add STANDINGS_INGEST_SECRET in Vercel (Settings → Environment Variables), then redeploy."
+            exit 1
+          elif [ "$RES" = "404" ]; then
+            echo "*** 404: Ingest URL may be wrong. Set vars.STANDINGS_INGEST_URL to your app URL (e.g. https://your-app.vercel.app)."
+            exit 1
+          fi
+
       - name: Update standings
         env:
           STANDINGS_INGEST_URL: ${{ vars.STANDINGS_INGEST_URL }}
           STANDINGS_INGEST_SECRET: ${{ secrets.STANDINGS_INGEST_SECRET }}
         run: |
-          echo "Node: $(node -v)"
           [ -n "$STANDINGS_INGEST_URL" ] || export STANDINGS_INGEST_URL=https://nhl-atlantic-pool.vercel.app
-          if [ -z "$STANDINGS_INGEST_SECRET" ]; then
-            echo ""
-            echo "*** STANDINGS_INGEST_SECRET is not set. ***"
-            echo "Add it: GitHub repo → Settings → Secrets and variables → Actions → New repository secret"
-            echo "Name: STANDINGS_INGEST_SECRET"
-            echo "Value: (same value you set in Vercel as STANDINGS_INGEST_SECRET)"
-            echo ""
-            exit 1
-          fi
           node scripts/update-standings.js
