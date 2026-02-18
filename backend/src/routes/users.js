@@ -33,10 +33,16 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/users/:id/avatar - Get user avatar preferences
+// Accepts either numeric ID or user name (e.g., 'nick', 'justin', 'chris')
 router.get('/:id/avatar', async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await dbQuery.get('SELECT avatar_preferences FROM users WHERE id = $1', [id]);
+    // Try numeric ID first, then fall back to name
+    const isNumeric = /^\d+$/.test(id);
+    const query = isNumeric 
+      ? 'SELECT avatar_preferences FROM users WHERE id = $1'
+      : 'SELECT avatar_preferences FROM users WHERE name = $1';
+    const user = await dbQuery.get(query, [id]);
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -54,6 +60,7 @@ router.get('/:id/avatar', async (req, res) => {
 });
 
 // PUT /api/users/:id/avatar - Update user avatar preferences
+// Accepts either numeric ID or user name (e.g., 'nick', 'justin', 'chris')
 router.put('/:id/avatar', async (req, res) => {
   try {
     const { id } = req.params;
@@ -64,10 +71,12 @@ router.put('/:id/avatar', async (req, res) => {
     }
     
     const preferencesJson = JSON.stringify(preferences);
-    const result = await dbQuery.run(
-      'UPDATE users SET avatar_preferences = $1 WHERE id = $2',
-      [preferencesJson, id]
-    );
+    // Try numeric ID first, then fall back to name
+    const isNumeric = /^\d+$/.test(id);
+    const query = isNumeric
+      ? 'UPDATE users SET avatar_preferences = $1 WHERE id = $2'
+      : 'UPDATE users SET avatar_preferences = $1 WHERE name = $2';
+    const result = await dbQuery.run(query, [preferencesJson, id]);
     
     if (result.changes === 0) {
       return res.status(404).json({ error: 'User not found' });
