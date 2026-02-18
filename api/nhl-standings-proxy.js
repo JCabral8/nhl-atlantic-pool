@@ -1,13 +1,44 @@
 /**
- * Dedicated Vercel function: GET /api/nhl-standings-proxy
- * Fetches NHL standings via CORS proxies so the browser never touches the NHL domain.
+ * GET /api/nhl-standings-proxy
+ * Tries ESPN first (no auth, very reachable), then NHL API via proxies.
+ * Returns either { standings: [...] } (normalized) or NHL raw { records: [...] }.
  */
+const ESPN_URL = 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/standings';
 const NHL_URL = 'https://statsapi.web.nhl.com/api/v1/standings';
+const ATLANTIC_NAMES = new Set([
+  'Boston Bruins', 'Buffalo Sabres', 'Detroit Red Wings', 'Florida Panthers',
+  'Montreal Canadiens', 'Ottawa Senators', 'Tampa Bay Lightning', 'Toronto Maple Leafs',
+]);
 
-const PROXIES = [
-  () => `https://corsproxy.io/?${encodeURIComponent(NHL_URL)}`,
-  () => `https://api.allorigins.win/raw?url=${encodeURIComponent(NHL_URL)}`,
-];
+function parseESPN(data) {
+  const out = [];
+  if (!data?.children?.length && !data?.groups?.length) return out;
+  const groups = data.children || data.groups || [];
+  for (const group of groups) {
+    const entries = group.standings?.entries || group.entries || [];
+    for (const entry of entries) {
+      const teamName = entry.team?.displayName || entry.team?.name || entry.displayName;
+      if (!teamName || !ATLANTIC_NAMES.has(teamName)) continue;
+      const stats = entry.stats || [];
+      const get = (names, def = 0) => {
+        const s = stats.find((x) => names.includes(String(x.name || x).toLowerCase()));
+        return s?.value != null ? Number(s.value) : def;
+      };
+      const w = get(['wins', 'w'], 0);
+      const l = get(['losses', 'l'], 0);
+      const ot = get(['ot', 'otl', 'overtimelosses'], 0);
+      out.push({
+        team: teamName,
+        gp: get(['gamesplayed', 'gp', 'games'], w + l + ot),
+        w,
+        l,
+        otl: ot,
+        pts: get(['points', 'pts', 'point'], 0),
+      });
+    }
+  }
+  return out;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -15,32 +46,46 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  let lastError;
-  for (const getUrl of PROXIES) {
-    try {
-      const url = getUrl();
-      const controller = new AbortController();
-      const t = setTimeout(() => controller.abort(), 15000);
-      const proxyRes = await fetch(url, {
-        headers: { Accept: 'application/json' },
-        signal: controller.signal,
-      });
-      clearTimeout(t);
-      if (!proxyRes.ok) throw new Error(`Proxy ${proxyRes.status}`);
-      const data = await proxyRes.json();
-      if (data?.records) {
-        return res.status(200).json(data);
+  const timeout = (ms) => new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms));
+
+  // 1) ESPN first
+  try {
+    const espnRes = await Promise.race([
+      fetch(ESPN_URL, { headers: { Accept: 'application/json' } }),
+      timeout(12000),
+    ]);
+    if (espnRes.ok) {
+      const data = await espnRes.json();
+      const standings = parseESPN(data);
+      if (standings.length >= 8) {
+        return res.status(200).json({ standings });
       }
-      throw new Error('Invalid response format');
+    }
+  } catch (e) {
+    console.warn('[nhl-standings-proxy] ESPN failed:', e.message);
+  }
+
+  // 2) NHL via proxies
+  for (const url of [
+    `https://corsproxy.io/?${encodeURIComponent(NHL_URL)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(NHL_URL)}`,
+  ]) {
+    try {
+      const proxyRes = await Promise.race([
+        fetch(url, { headers: { Accept: 'application/json' } }),
+        timeout(12000),
+      ]);
+      if (proxyRes.ok) {
+        const data = await proxyRes.json();
+        if (data?.records) return res.status(200).json(data);
+      }
     } catch (e) {
-      lastError = e;
-      console.warn('[nhl-standings-proxy] attempt failed:', e.message);
+      console.warn('[nhl-standings-proxy] proxy failed:', e.message);
     }
   }
 
-  console.error('[nhl-standings-proxy] all proxies failed:', lastError?.message);
   res.status(502).json({
-    error: 'Could not load NHL standings',
-    details: lastError?.message || 'All proxy attempts failed',
+    error: 'Could not load standings',
+    details: 'ESPN and NHL proxy attempts failed',
   });
 }

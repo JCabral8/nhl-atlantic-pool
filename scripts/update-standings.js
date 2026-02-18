@@ -1,29 +1,66 @@
 #!/usr/bin/env node
 /**
- * Fetches NHL Atlantic Division standings and POSTs to the app's ingest endpoint.
- * Tries direct NHL API first, then CORS proxies. Run from GitHub Actions with
- * STANDINGS_INGEST_URL and STANDINGS_INGEST_SECRET.
+ * Fetches NHL Atlantic Division standings from multiple internet sources and POSTs to the app.
+ * Tries ESPN first (no auth, very reachable), then NHL API, then proxies.
  */
-const NHL_URL = 'https://statsapi.web.nhl.com/api/v1/standings';
-const PROXY_URLS = [
-  NHL_URL,
-  `https://corsproxy.io/?${encodeURIComponent(NHL_URL)}`,
-  `https://api.allorigins.win/raw?url=${encodeURIComponent(NHL_URL)}`,
-];
-
-const ATLANTIC_TEAMS = new Set([
+const ATLANTIC_TEAM_NAMES = new Set([
   'Boston Bruins', 'Buffalo Sabres', 'Detroit Red Wings', 'Florida Panthers',
   'Montreal Canadiens', 'Ottawa Senators', 'Tampa Bay Lightning', 'Toronto Maple Leafs',
 ]);
 
-function parseAtlantic(apiData) {
-  if (!apiData?.records) throw new Error('Invalid NHL API response: no records');
+// ESPN: no auth, widely reachable
+const ESPN_STANDINGS = 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/standings';
+// NHL official
+const NHL_STANDINGS = 'https://statsapi.web.nhl.com/api/v1/standings';
+
+function parseFromESPN(data) {
   const out = [];
-  for (const record of apiData.records) {
+  if (!data) return out;
+  const collect = (entries, isAtlantic) => {
+    if (!Array.isArray(entries)) return;
+    for (const entry of entries) {
+      const teamName = entry.team?.displayName || entry.team?.name || entry.displayName;
+      if (!teamName || !ATLANTIC_TEAM_NAMES.has(teamName)) continue;
+      if (!isAtlantic && out.some((s) => s.team === teamName)) continue;
+      const stats = entry.stats || [];
+      const getStat = (names, def = 0) => {
+        const s = stats.find((x) => names.includes(String(x.name || x).toLowerCase()));
+        return s && s.value != null ? Number(s.value) : def;
+      };
+      const wins = getStat(['wins', 'w'], 0);
+      const losses = getStat(['losses', 'l'], 0);
+      const ot = getStat(['ot', 'otl', 'overtimelosses', 'ot losses'], 0);
+      const pts = getStat(['points', 'pts', 'point'], 0);
+      const gp = getStat(['gamesplayed', 'gp', 'games'], wins + losses + ot);
+      out.push({
+        team: teamName,
+        gp: gp || wins + losses + ot,
+        w: wins,
+        l: losses,
+        otl: ot,
+        pts: pts,
+      });
+    }
+  };
+  const children = data.children || data.groups || [];
+  for (const group of children) {
+    const name = (group.name || group.abbreviation || '').toLowerCase();
+    const isAtlantic = name.includes('atlantic') || name === 'atl';
+    const entries = group.standings?.entries || group.entries || [];
+    collect(entries, isAtlantic);
+  }
+  collect(data.standings?.entries || data.entries || [], true);
+  return out;
+}
+
+function parseFromNHL(data) {
+  if (!data?.records) return [];
+  const out = [];
+  for (const record of data.records) {
     if (!record.teamRecords) continue;
     for (const tr of record.teamRecords) {
       const name = tr.team?.name;
-      if (name && ATLANTIC_TEAMS.has(name)) {
+      if (name && ATLANTIC_TEAM_NAMES.has(name)) {
         const stats = tr.leagueRecord || {};
         const stand = tr.standings || {};
         out.push({
@@ -40,32 +77,69 @@ function parseAtlantic(apiData) {
   return out;
 }
 
-async function fetchNHL() {
-  let lastErr;
-  for (const url of PROXY_URLS) {
+async function fetchWithTimeout(url, timeoutMs = 12000) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' },
+      signal: ac.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) throw new Error(`${res.status}`);
+    return await res.json();
+  } catch (e) {
+    clearTimeout(t);
+    throw e;
+  }
+}
+
+async function fetchStandings() {
+  // 1) ESPN first (no auth, very reachable from GitHub and most networks)
+  try {
+    console.log('Trying ESPN...');
+    const data = await fetchWithTimeout(ESPN_STANDINGS);
+    const standings = parseFromESPN(data);
+    if (standings.length >= 8) {
+      console.log('Got', standings.length, 'teams from ESPN');
+      return standings;
+    }
+  } catch (e) {
+    console.warn('  ESPN failed:', e.message || e);
+  }
+
+  // 2) NHL API direct
+  try {
+    console.log('Trying NHL API...');
+    const data = await fetchWithTimeout(NHL_STANDINGS);
+    const standings = parseFromNHL(data);
+    if (standings.length >= 8) {
+      console.log('Got', standings.length, 'teams from NHL API');
+      return standings;
+    }
+  } catch (e) {
+    console.warn('  NHL API failed:', e.message || e);
+  }
+
+  // 3) NHL via proxies
+  for (const proxy of [
+    `https://corsproxy.io/?${encodeURIComponent(NHL_STANDINGS)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(NHL_STANDINGS)}`,
+  ]) {
     try {
-      const label = url === NHL_URL ? 'NHL API' : 'proxy';
-      console.log('Trying', label, '...');
-      const ac = new AbortController();
-      const t = setTimeout(() => ac.abort(), 15000);
-      const res = await fetch(url, {
-        headers: { Accept: 'application/json' },
-        signal: ac.signal,
-      });
-      clearTimeout(t);
-      if (!res.ok) throw new Error(`${res.status}`);
-      const data = await res.json();
-      const standings = parseAtlantic(data);
+      console.log('Trying proxy...');
+      const data = await fetchWithTimeout(proxy);
+      const standings = parseFromNHL(data);
       if (standings.length >= 8) {
-        console.log('Got', standings.length, 'teams from', label);
+        console.log('Got', standings.length, 'teams from proxy');
         return standings;
       }
     } catch (e) {
-      lastErr = e;
-      console.warn('  failed:', e.message || e);
+      console.warn('  Proxy failed:', e.message || e);
     }
   }
-  throw lastErr || new Error('All fetch attempts failed');
+
+  throw new Error('Could not fetch standings from ESPN, NHL API, or proxies');
 }
 
 async function main() {
@@ -73,13 +147,11 @@ async function main() {
   const secret = process.env.STANDINGS_INGEST_SECRET;
   if (!secret) {
     console.error('ERROR: STANDINGS_INGEST_SECRET is not set.');
-    console.error('Add it in GitHub repo → Settings → Secrets and variables → Actions → STANDINGS_INGEST_SECRET');
     process.exit(1);
   }
 
   const ingestUrl = `${baseUrl.replace(/\/$/, '')}/api/standings/ingest`;
-
-  const standings = await fetchNHL();
+  const standings = await fetchStandings();
 
   console.log('POSTing to app...');
   const postRes = await fetch(ingestUrl, {
@@ -92,14 +164,9 @@ async function main() {
   });
   const text = await postRes.text();
   if (!postRes.ok) {
-    console.error('INGEST FAILED:', postRes.status, postRes.statusText);
-    console.error('Response:', text);
-    if (postRes.status === 401) {
-      console.error('→ Secret mismatch. Use the SAME value for STANDINGS_INGEST_SECRET in both GitHub and Vercel.');
-    }
-    if (postRes.status === 503) {
-      console.error('→ Add STANDINGS_INGEST_SECRET in Vercel (Project → Settings → Environment Variables), then redeploy.');
-    }
+    console.error('INGEST FAILED:', postRes.status, text);
+    if (postRes.status === 401) console.error('→ Secret mismatch (same value in GitHub and Vercel?)');
+    if (postRes.status === 503) console.error('→ Add STANDINGS_INGEST_SECRET in Vercel and redeploy.');
     process.exit(1);
   }
   console.log('Done.', text);

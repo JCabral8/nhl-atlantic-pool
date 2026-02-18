@@ -308,8 +308,10 @@ const AdminPage = () => {
     const adminPassword = sessionStorage.getItem('admin_authenticated') === 'true' ? 'hunter' : '';
     try {
       const apiData = await fetchNHLStandings();
-      const standings = parseAtlanticStandings(apiData);
-      if (standings.length === 0) throw new Error('No Atlantic Division teams in NHL response');
+      const standings = Array.isArray(apiData.standings) && apiData.standings.length >= 8
+        ? apiData.standings
+        : parseAtlanticStandings(apiData);
+      if (standings.length === 0) throw new Error('No Atlantic Division teams in response');
 
       const response = await axios.post(
         `${API_BASE}/standings/update-now`,
