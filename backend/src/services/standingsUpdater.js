@@ -20,22 +20,32 @@ const TEAM_NAME_MAP = {
 const ATLANTIC_TEAMS = new Set(Object.values(TEAM_NAME_MAP));
 
 /**
- * Fetch standings from NHL API
+ * Fetch standings from NHL API with timeout
  */
 const fetchNHLStandings = async (retryCount = 0) => {
   const maxRetries = 3;
   const baseDelay = 1000; // 1 second
+  const timeout = 8000; // 8 seconds timeout (Vercel functions have 10s limit)
 
   try {
-    const response = await fetch(`${NHL_API_BASE}/standings`, {
-      // Node 18+ has global fetch; keep options simple for compatibility
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout - NHL API did not respond within 8 seconds')), timeout);
+    });
+
+    // Create the fetch promise
+    const fetchPromise = fetch(`${NHL_API_BASE}/standings`, {
       headers: {
         'Accept': 'application/json',
+        'User-Agent': 'NHL-Atlantic-Pool/1.0',
       },
     });
 
+    // Race between fetch and timeout
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+
     if (!response.ok) {
-      throw new Error(`NHL API responded with ${response.status}`);
+      throw new Error(`NHL API responded with ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
@@ -44,13 +54,24 @@ const fetchNHLStandings = async (retryCount = 0) => {
       return data;
     }
 
-    throw new Error('Invalid API response format');
+    throw new Error('Invalid API response format: missing records');
   } catch (error) {
+    // Log more details about the error
+    const errorMessage = error.message || String(error);
+    console.error(`NHL API fetch error (attempt ${retryCount + 1}/${maxRetries + 1}):`, errorMessage);
+    
     if (retryCount < maxRetries) {
       const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
-      console.log(`NHL API request failed, retrying in ${delay}ms... (attempt ${retryCount + 1}/${maxRetries})`);
+      console.log(`Retrying NHL API request in ${delay}ms... (attempt ${retryCount + 1}/${maxRetries})`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return fetchNHLStandings(retryCount + 1);
+    }
+    
+    // Provide more detailed error message
+    if (errorMessage.includes('timeout')) {
+      throw new Error(`NHL API timeout after ${maxRetries + 1} attempts: ${errorMessage}`);
+    } else if (errorMessage.includes('fetch failed') || errorMessage.includes('ENOTFOUND') || errorMessage.includes('ECONNREFUSED')) {
+      throw new Error(`NHL API connection failed: ${errorMessage}. Check network connectivity and API availability.`);
     }
     throw error;
   }
