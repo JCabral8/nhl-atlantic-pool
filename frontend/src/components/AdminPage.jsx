@@ -289,12 +289,15 @@ const AdminPage = () => {
     }
   };
 
-  // Fetch via our API so the browser never touches the NHL domain (avoids ERR_NAME_NOT_RESOLVED)
   const fetchNHLStandings = async () => {
     const res = await fetch(`${API_BASE}/nhl-standings-proxy`);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.details || err.error || `Standings proxy returned ${res.status}`);
+      const msg = err.details || err.error || `Proxy returned ${res.status}`;
+      if (res.status === 502) {
+        throw new Error('Auto-fetch unavailable. Use the manual form below or rely on the daily GitHub Action.');
+      }
+      throw new Error(msg);
     }
     return await res.json();
   };
@@ -324,8 +327,8 @@ const AdminPage = () => {
       const errorMsg = err.response?.data?.error || err.response?.data?.message;
       const errorStr = typeof errorMsg === 'string' ? errorMsg : (err.message || 'Failed to update standings');
       setStandingsUpdateMessage(
-        errorStr.includes('502') || errorStr.includes('Could not load')
-          ? 'Auto-fetch failed. Use the form below to enter standings manually.'
+        errorStr.includes('Auto-fetch unavailable') || errorStr.includes('502') || errorStr.includes('Could not load')
+          ? 'Auto-fetch unavailable. Use the manual form below to enter standings, or wait for the daily GitHub Action.'
           : errorStr
       );
     } finally {
@@ -545,7 +548,7 @@ const AdminPage = () => {
                     </Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Click the button to fetch latest Atlantic Division standings (from your browser) and save to the database.
+                    Standings are updated daily by GitHub Actions. To update now: try the button below, or use the manual form (if the button returns an error, the form always works).
                   </Typography>
                   
                   {lastUpdated && (
