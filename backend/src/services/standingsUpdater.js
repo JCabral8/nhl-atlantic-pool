@@ -131,9 +131,9 @@ const parseAtlanticDivision = (apiData) => {
 };
 
 /**
- * Update standings in the database
+ * Update standings in the database (exported for client-provided data)
  */
-const updateStandingsInDB = async (standings) => {
+export const updateStandingsInDB = async (standings) => {
   if (!standings || standings.length === 0) {
     throw new Error('No standings data to update');
   }

@@ -53,6 +53,37 @@ const StyledCard = styled(Card)(({ theme }) => ({
   boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
 }));
 
+// Atlantic Division team names (must match backend)
+const ATLANTIC_TEAMS = new Set([
+  'Tampa Bay Lightning', 'Boston Bruins', 'Detroit Red Wings', 'Montreal Canadiens',
+  'Toronto Maple Leafs', 'Florida Panthers', 'Ottawa Senators', 'Buffalo Sabres',
+]);
+
+/** Parse Atlantic Division from NHL API response (same shape as backend) */
+function parseAtlanticStandings(apiData) {
+  if (!apiData?.records) throw new Error('Invalid NHL API response');
+  const out = [];
+  for (const record of apiData.records) {
+    if (!record.teamRecords) continue;
+    for (const tr of record.teamRecords) {
+      const name = tr.team?.name;
+      if (name && ATLANTIC_TEAMS.has(name)) {
+        const stats = tr.leagueRecord || {};
+        const standings = tr.standings || {};
+        out.push({
+          team: name,
+          gp: Number(standings.gamesPlayed ?? (stats.wins + stats.losses + (stats.ot || 0)) ?? 0),
+          w: Number(stats.wins || 0),
+          l: Number(stats.losses || 0),
+          otl: Number(stats.ot || 0),
+          pts: Number(standings.points ?? tr.points ?? 0),
+        });
+      }
+    }
+  }
+  return out;
+}
+
 const AdminPage = () => {
   const navigate = useNavigate();
   const { API_BASE, refreshStandings } = useApp();
@@ -219,11 +250,22 @@ const AdminPage = () => {
   const handleUpdateStandings = async () => {
     setStandingsUpdateMessage(null);
     setStandingsUpdating(true);
+    const adminPassword = sessionStorage.getItem('admin_authenticated') === 'true' ? 'hunter' : '';
     try {
-      const adminPassword = sessionStorage.getItem('admin_authenticated') === 'true' ? 'hunter' : '';
-      const response = await axios.post(`${API_BASE}/standings/update-now`, {}, {
-        headers: { 'x-admin-password': adminPassword },
+      // Fetch from NHL API in the browser (works; Vercel serverless cannot reach NHL API)
+      const nhlRes = await fetch('https://statsapi.web.nhl.com/api/v1/standings', {
+        headers: { Accept: 'application/json' },
       });
+      if (!nhlRes.ok) throw new Error(`NHL API returned ${nhlRes.status}`);
+      const apiData = await nhlRes.json();
+      const standings = parseAtlanticStandings(apiData);
+      if (standings.length === 0) throw new Error('No Atlantic Division teams in NHL response');
+
+      const response = await axios.post(
+        `${API_BASE}/standings/update-now`,
+        { standings },
+        { headers: { 'x-admin-password': adminPassword } }
+      );
       if (response.data.success) {
         setStandingsUpdateMessage(`Standings updated successfully (${response.data.updated ?? 0} teams).`);
         fetchLastUpdated();

@@ -1,6 +1,6 @@
 import express from 'express';
 import { dbQuery } from '../database/dbAdapter.js';
-import { updateStandings } from '../services/standingsUpdater.js';
+import { updateStandings, updateStandingsInDB } from '../services/standingsUpdater.js';
 
 const router = express.Router();
 
@@ -69,11 +69,33 @@ router.get('/last-updated', async (req, res) => {
 });
 
 // POST /api/standings/update-now - Manually trigger standings update (admin or cron)
+// Accepts optional body.standings (array of { team, gp, w, l, otl, pts }) so the client
+// can fetch from NHL API (works from browser) and send data — avoids Vercel serverless fetch limits.
 router.post('/update-now', checkAdmin, async (req, res) => {
   try {
-    console.log('🔄 Manual standings update triggered');
-    const result = await updateStandings();
-    
+    const providedStandings = req.body?.standings;
+    let result;
+
+    if (Array.isArray(providedStandings) && providedStandings.length > 0) {
+      // Client provided standings (e.g. fetched in browser from NHL API)
+      const valid = providedStandings.every(
+        (s) => s && typeof s.team === 'string' && typeof s.gp === 'number' && typeof s.pts === 'number'
+      );
+      if (!valid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid standings format. Need array of { team, gp, w, l, otl, pts }.',
+        });
+      }
+      console.log('🔄 Standings update from client-provided data');
+      await updateStandingsInDB(providedStandings);
+      result = { success: true, updated: providedStandings.length };
+    } else {
+      // Server-side fetch (may fail on Vercel due to NHL API unreachable)
+      console.log('🔄 Manual standings update (server fetch)');
+      result = await updateStandings();
+    }
+
     if (result.success) {
       res.json({
         success: true,
