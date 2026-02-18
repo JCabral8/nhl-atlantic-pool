@@ -28,10 +28,9 @@ const fetchNHLStandings = async (retryCount = 0) => {
   const timeout = 8000; // 8 seconds timeout (Vercel functions have 10s limit)
 
   try {
-    // Create a timeout promise
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Request timeout - NHL API did not respond within 8 seconds')), timeout);
-    });
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     // Create the fetch promise
     const fetchPromise = fetch(`${NHL_API_BASE}/standings`, {
@@ -39,10 +38,11 @@ const fetchNHLStandings = async (retryCount = 0) => {
         'Accept': 'application/json',
         'User-Agent': 'NHL-Atlantic-Pool/1.0',
       },
+      signal: controller.signal,
     });
 
-    // Race between fetch and timeout
-    const response = await Promise.race([fetchPromise, timeoutPromise]);
+    const response = await fetchPromise;
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`NHL API responded with ${response.status}: ${response.statusText}`);
@@ -56,9 +56,20 @@ const fetchNHLStandings = async (retryCount = 0) => {
 
     throw new Error('Invalid API response format: missing records');
   } catch (error) {
+    // Clear timeout if it wasn't already cleared
+    if (typeof timeoutId !== 'undefined') {
+      clearTimeout(timeoutId);
+    }
+    
     // Log more details about the error
     const errorMessage = error.message || String(error);
-    console.error(`NHL API fetch error (attempt ${retryCount + 1}/${maxRetries + 1}):`, errorMessage);
+    const errorName = error.name || 'UnknownError';
+    console.error(`NHL API fetch error (attempt ${retryCount + 1}/${maxRetries + 1}):`, {
+      name: errorName,
+      message: errorMessage,
+      code: error.code,
+      cause: error.cause,
+    });
     
     if (retryCount < maxRetries) {
       const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
@@ -68,10 +79,10 @@ const fetchNHLStandings = async (retryCount = 0) => {
     }
     
     // Provide more detailed error message
-    if (errorMessage.includes('timeout')) {
-      throw new Error(`NHL API timeout after ${maxRetries + 1} attempts: ${errorMessage}`);
-    } else if (errorMessage.includes('fetch failed') || errorMessage.includes('ENOTFOUND') || errorMessage.includes('ECONNREFUSED')) {
-      throw new Error(`NHL API connection failed: ${errorMessage}. Check network connectivity and API availability.`);
+    if (errorName === 'AbortError' || errorMessage.includes('aborted') || errorMessage.includes('timeout')) {
+      throw new Error(`NHL API timeout after ${maxRetries + 1} attempts: Request took longer than ${timeout}ms`);
+    } else if (errorMessage.includes('fetch failed') || errorMessage.includes('ENOTFOUND') || errorMessage.includes('ECONNREFUSED') || errorMessage.includes('getaddrinfo')) {
+      throw new Error(`NHL API connection failed: ${errorMessage}. The NHL API may be unreachable from Vercel's servers.`);
     }
     throw error;
   }
