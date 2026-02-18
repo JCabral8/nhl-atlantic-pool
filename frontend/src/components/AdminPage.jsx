@@ -99,7 +99,8 @@ const AdminPage = () => {
         setError('Invalid password');
       }
     } catch (error) {
-      setError(error.response?.data?.error || 'Failed to authenticate');
+      const errorMsg = error.response?.data?.error;
+      setError(typeof errorMsg === 'string' ? errorMsg : (error.message || 'Failed to authenticate'));
     } finally {
       setLoading(false);
     }
@@ -148,7 +149,9 @@ const AdminPage = () => {
       setTableData(prev => ({ ...prev, [tableName]: response.data }));
     } catch (error) {
       console.error(`Error fetching table ${tableName}:`, error);
-      setTableData(prev => ({ ...prev, [tableName]: { error: error.response?.data?.error || 'Failed to load data' } }));
+      const errorMsg = error.response?.data?.error;
+      const errorStr = typeof errorMsg === 'string' ? errorMsg : (error.message || 'Failed to load data');
+      setTableData(prev => ({ ...prev, [tableName]: { error: errorStr } }));
     } finally {
       setLoadingTable(prev => ({ ...prev, [tableName]: false }));
     }
@@ -178,7 +181,9 @@ const AdminPage = () => {
         setStandingsUpdateMessage(response.data.message || response.data.error || 'Update failed');
       }
     } catch (err) {
-      setStandingsUpdateMessage(err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to update standings');
+      const errorMsg = err.response?.data?.error || err.response?.data?.message;
+      const errorStr = typeof errorMsg === 'string' ? errorMsg : (err.message || 'Failed to update standings');
+      setStandingsUpdateMessage(errorStr);
     } finally {
       setStandingsUpdating(false);
     }
@@ -396,7 +401,7 @@ const AdminPage = () => {
                                 ) : (
                                   <TableRow>
                                     <TableCell colSpan={4} align="center">
-                                      {table.error || 'No columns found'}
+                                      {typeof table.error === 'string' ? table.error : 'No columns found'}
                                     </TableCell>
                                   </TableRow>
                                 )}
