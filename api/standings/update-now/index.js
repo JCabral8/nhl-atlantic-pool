@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     req.url = '/api/standings/update-now';
     req.originalUrl = '/api/standings/update-now';
     
-    const { default: app } = await import('../../backend/src/app.js');
+    const { default: app } = await import('../../../backend/src/app.js');
     return new Promise((resolve, reject) => {
       res.on('finish', () => resolve());
       res.on('error', reject);

@@ -1,6 +1,6 @@
 /**
- * Dedicated Vercel function for standings last-updated endpoint to avoid catch-all routing issues.
- * Path: GET /api/standings/last-updated
+ * Dedicated Vercel function for predictions/all endpoint to avoid catch-all routing issues.
+ * Path: GET /api/predictions/all
  */
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -9,19 +9,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Forward to Express standings router
+    // Forward to Express predictions router
     // Set the path to what Express expects
-    req.url = '/api/standings/last-updated';
-    req.originalUrl = '/api/standings/last-updated';
+    req.url = '/api/predictions/all';
+    req.originalUrl = '/api/predictions/all';
     
-    const { default: app } = await import('../../backend/src/app.js');
+    const { default: app } = await import('../../../backend/src/app.js');
     return new Promise((resolve, reject) => {
       res.on('finish', () => resolve());
       res.on('error', reject);
       app(req, res);
     });
   } catch (error) {
-    console.error('Standings last-updated handler error:', error);
+    console.error('Predictions all handler error:', error);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Internal server error', details: error.message });
     }
