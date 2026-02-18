@@ -4,24 +4,26 @@
  * Returns a Promise so the runtime waits for the response before freezing.
  */
 export default async function handler(req, res) {
-  // Ensure Express sees path-only URL (Vercel sometimes sends full URL)
-  const raw = req.url || req.originalUrl || '/';
-  let path = raw;
-  if (!path.startsWith('/')) {
-    try {
-      const u = new URL(raw);
-      path = u.pathname + (u.search || '');
-    } catch (_) {
-      path = raw;
-    }
-  }
-  // Ensure path starts with /api for Express routes
-  if (!path.startsWith('/api') && path.startsWith('/')) {
-    // Vercel might strip /api prefix, add it back
+  // Vercel passes the path after /api to the catch-all handler
+  // e.g., /api/admin/auth -> req.url is /admin/auth
+  // We need to restore the /api prefix for Express routes
+  const raw = req.url || '/';
+  let path = raw.startsWith('/') ? raw : '/' + raw;
+  
+  // If path doesn't start with /api, add it (Vercel strips /api prefix)
+  if (!path.startsWith('/api')) {
     path = '/api' + path;
   }
+  
+  // Preserve query string if present
+  const query = req.url?.includes('?') ? req.url.split('?')[1] : '';
+  if (query) {
+    path += '?' + query;
+  }
+  
   req.url = path;
   req.originalUrl = path;
+  
   const { default: app } = await import('../backend/src/app.js');
   return new Promise((resolve, reject) => {
     res.on('finish', () => resolve());
