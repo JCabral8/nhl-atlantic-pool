@@ -29,12 +29,14 @@ import {
   AccordionDetails,
   IconButton,
   Tooltip,
+  Grid,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   ExpandMore as ExpandMoreIcon,
   Storage as DatabaseIcon,
   Lock as LockIcon,
+  Update as UpdateIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import Header from './Header';
@@ -53,7 +55,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
 
 const AdminPage = () => {
   const navigate = useNavigate();
-  const { API_BASE } = useApp();
+  const { API_BASE, refreshStandings } = useApp();
   const [passwordModalOpen, setPasswordModalOpen] = useState(true);
   const [password, setPassword] = useState('');
   const [authenticated, setAuthenticated] = useState(false);
@@ -62,6 +64,8 @@ const AdminPage = () => {
   const [dbInfo, setDbInfo] = useState(null);
   const [tableData, setTableData] = useState({});
   const [loadingTable, setLoadingTable] = useState({});
+  const [standingsUpdating, setStandingsUpdating] = useState(false);
+  const [standingsUpdateMessage, setStandingsUpdateMessage] = useState(null);
 
   useEffect(() => {
     // Check if already authenticated (stored in sessionStorage)
@@ -71,6 +75,7 @@ const AdminPage = () => {
       setPasswordModalOpen(false);
       fetchDatabaseInfo();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePasswordSubmit = async () => {
@@ -102,8 +107,10 @@ const AdminPage = () => {
 
   const fetchDatabaseInfo = async () => {
     setLoading(true);
+    setError('');
     try {
       const password = sessionStorage.getItem('admin_authenticated') === 'true' ? 'hunter' : '';
+      console.log('Fetching database info from:', `${API_BASE}/admin/database`);
       const response = await axios.get(`${API_BASE}/admin/database`, {
         headers: {
           'x-admin-password': password,
@@ -112,7 +119,10 @@ const AdminPage = () => {
       setDbInfo(response.data);
     } catch (error) {
       console.error('Error fetching database info:', error);
-      setError(error.response?.data?.error || 'Failed to fetch database information');
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to fetch database information';
+      setError(errorMsg);
+      // Set dbInfo to empty object so UI still renders
+      setDbInfo({ tables: [], error: errorMsg });
     } finally {
       setLoading(false);
     }
@@ -151,6 +161,27 @@ const AdminPage = () => {
     setPassword('');
     setDbInfo(null);
     setTableData({});
+  };
+
+  const handleUpdateStandings = async () => {
+    setStandingsUpdateMessage(null);
+    setStandingsUpdating(true);
+    try {
+      const adminPassword = sessionStorage.getItem('admin_authenticated') === 'true' ? 'hunter' : '';
+      const response = await axios.post(`${API_BASE}/standings/update-now`, {}, {
+        headers: { 'x-admin-password': adminPassword },
+      });
+      if (response.data.success) {
+        setStandingsUpdateMessage(`Standings updated successfully (${response.data.updated ?? 0} teams).`);
+        refreshStandings?.();
+      } else {
+        setStandingsUpdateMessage(response.data.message || response.data.error || 'Update failed');
+      }
+    } catch (err) {
+      setStandingsUpdateMessage(err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to update standings');
+    } finally {
+      setStandingsUpdating(false);
+    }
   };
 
   if (!authenticated) {
@@ -233,7 +264,7 @@ const AdminPage = () => {
           <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
             <CircularProgress />
           </Box>
-        ) : dbInfo ? (
+        ) : dbInfo || !loading ? (
           <Grid container spacing={3}>
             {/* Database Connection Info */}
             <Grid item xs={12}>
@@ -265,6 +296,40 @@ const AdminPage = () => {
                       variant="outlined" 
                     />
                   </Box>
+                </CardContent>
+              </StyledCard>
+            </Grid>
+
+            {/* Update NHL Standings */}
+            <Grid item xs={12}>
+              <StyledCard>
+                <CardContent>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <UpdateIcon sx={{ mr: 1, color: 'primary.main' }} />
+                    <Typography variant="h6" fontWeight="bold">
+                      NHL Standings
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Fetch latest Atlantic Division standings from the NHL API and save to the database.
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    onClick={handleUpdateStandings}
+                    disabled={standingsUpdating}
+                    startIcon={standingsUpdating ? <CircularProgress size={20} /> : <UpdateIcon />}
+                  >
+                    {standingsUpdating ? 'Updating…' : 'Update NHL standings'}
+                  </Button>
+                  {standingsUpdateMessage && (
+                    <Alert
+                      severity={standingsUpdateMessage.startsWith('Standings updated') ? 'success' : 'error'}
+                      sx={{ mt: 2 }}
+                      onClose={() => setStandingsUpdateMessage(null)}
+                    >
+                      {standingsUpdateMessage}
+                    </Alert>
+                  )}
                 </CardContent>
               </StyledCard>
             </Grid>
