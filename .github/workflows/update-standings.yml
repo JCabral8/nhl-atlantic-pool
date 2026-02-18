@@ -18,9 +18,15 @@ jobs:
           STANDINGS_INGEST_URL: ${{ vars.STANDINGS_INGEST_URL }}
           STANDINGS_INGEST_SECRET: ${{ secrets.STANDINGS_INGEST_SECRET }}
         run: |
+          echo "Node: $(node -v)"
+          [ -n "$STANDINGS_INGEST_URL" ] || export STANDINGS_INGEST_URL=https://nhl-atlantic-pool.vercel.app
           if [ -z "$STANDINGS_INGEST_SECRET" ]; then
-            echo "::error::STANDINGS_INGEST_SECRET is not set. Add it in repo Settings → Secrets and variables → Actions."
+            echo ""
+            echo "*** STANDINGS_INGEST_SECRET is not set. ***"
+            echo "Add it: GitHub repo → Settings → Secrets and variables → Actions → New repository secret"
+            echo "Name: STANDINGS_INGEST_SECRET"
+            echo "Value: (same value you set in Vercel as STANDINGS_INGEST_SECRET)"
+            echo ""
             exit 1
           fi
-          [ -n "$STANDINGS_INGEST_URL" ] || export STANDINGS_INGEST_URL=https://nhl-atlantic-pool.vercel.app
           node scripts/update-standings.js

@@ -46,10 +46,13 @@ async function fetchNHL() {
     try {
       const label = url === NHL_URL ? 'NHL API' : 'proxy';
       console.log('Trying', label, '...');
+      const ac = new AbortController();
+      const t = setTimeout(() => ac.abort(), 15000);
       const res = await fetch(url, {
         headers: { Accept: 'application/json' },
-        signal: AbortSignal.timeout(15000),
+        signal: ac.signal,
       });
+      clearTimeout(t);
       if (!res.ok) throw new Error(`${res.status}`);
       const data = await res.json();
       const standings = parseAtlantic(data);
