@@ -42,12 +42,19 @@ export default async function handler(req, res) {
   }
   
   // Preserve query string (but exclude the 'path' param from catch-all)
-  const urlObj = new URL(req.url || `http://localhost${path}`);
-  const searchParams = new URLSearchParams(urlObj.search);
-  searchParams.delete('path'); // Remove catch-all path param
-  const queryString = searchParams.toString();
-  if (queryString) {
-    path = path.split('?')[0] + '?' + queryString;
+  // Extract query string from original req.url if present
+  const originalUrl = req.url || '';
+  const queryMatch = originalUrl.includes('?') ? originalUrl.split('?')[1] : '';
+  if (queryMatch) {
+    const searchParams = new URLSearchParams(queryMatch);
+    searchParams.delete('path'); // Remove catch-all path param
+    const queryString = searchParams.toString();
+    if (queryString) {
+      path = path.split('?')[0] + '?' + queryString;
+    } else {
+      // No remaining query params, remove ? from path
+      path = path.split('?')[0];
+    }
   }
   
   // Debug logging (will appear in Vercel function logs)
