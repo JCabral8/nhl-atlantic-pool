@@ -47,10 +47,26 @@ That creates the tables in Supabase. Safe to run again (idempotent).
 
 ---
 
-## 4. Standings updates
+## 4. Standings updates (automatic via GitHub Actions)
 
-- **Only from Admin:** The server cannot reach the NHL API from Vercel. In the app, go to **Admin**, then click **Update NHL standings**. Your browser fetches the NHL data and sends it to the API to save. Use this button whenever you want to refresh standings.
-- **No automatic server update:** Cron does not fetch the NHL API (same limitation). Use the Admin button as needed. "Last updated" is shown on the Admin page.
+Standings are updated automatically by a **GitHub Actions** workflow that runs daily (and can be run manually). GitHub’s runners can reach the NHL API; they fetch the data and POST it to your app.
+
+**One-time setup:**
+
+1. **Create a secret** (e.g. 32 random characters). You can run: `openssl rand -hex 16` or use a password generator.
+
+2. **In Vercel** (Project → Settings → Environment Variables):
+   - Add **`STANDINGS_INGEST_SECRET`** = that same secret. Apply to **Production**.
+
+3. **In GitHub** (repo → Settings → Secrets and variables → Actions):
+   - Add **Repository secret**: **`STANDINGS_INGEST_SECRET`** = the same value as in Vercel.
+   - Optional: add **Repository variable** **`STANDINGS_INGEST_URL`** = `https://your-app.vercel.app` if your app URL is different from `https://nhl-atlantic-pool.vercel.app`.
+
+4. **Redeploy** the Vercel app once so it picks up `STANDINGS_INGEST_SECRET`.
+
+After that, the workflow **Update NHL Standings** runs daily at 12:00 UTC. To run it now: GitHub repo → **Actions** → **Update NHL Standings** → **Run workflow**.
+
+- **Manual fallback:** Admin page → **Update NHL standings** (or use the manual standings form if auto-fetch fails).
 
 ---
 

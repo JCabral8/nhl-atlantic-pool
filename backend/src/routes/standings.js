@@ -13,6 +13,20 @@ const checkAdmin = (req, res, next) => {
   next();
 };
 
+// For GitHub Actions (or any external cron): Bearer token must match STANDINGS_INGEST_SECRET
+const checkIngestSecret = (req, res, next) => {
+  const secret = process.env.STANDINGS_INGEST_SECRET;
+  if (!secret) {
+    return res.status(503).json({ error: 'STANDINGS_INGEST_SECRET not configured' });
+  }
+  const auth = req.headers.authorization;
+  const token = auth && auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (token !== secret) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+};
+
 // GET /api/standings - Get current standings
 router.get('/', async (req, res) => {
   try {
@@ -65,6 +79,27 @@ router.get('/last-updated', async (req, res) => {
       error: 'Failed to fetch last updated timestamp',
       details: error.message 
     });
+  }
+});
+
+// POST /api/standings/ingest - For GitHub Actions: Bearer STANDINGS_INGEST_SECRET, body { standings }
+router.post('/ingest', checkIngestSecret, async (req, res) => {
+  try {
+    const standings = req.body?.standings;
+    if (!Array.isArray(standings) || standings.length === 0) {
+      return res.status(400).json({ error: 'standings array required' });
+    }
+    const valid = standings.every(
+      (s) => s && typeof s.team === 'string' && typeof s.gp === 'number' && typeof s.pts === 'number'
+    );
+    if (!valid) {
+      return res.status(400).json({ error: 'Invalid standings format' });
+    }
+    await updateStandingsInDB(standings);
+    res.json({ success: true, updated: standings.length });
+  } catch (error) {
+    console.error('Standings ingest error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
