@@ -89,6 +89,21 @@ app.get('/api/test', (req, res) => {
   });
 });
 
+// Proxy for NHL standings so the browser never touches the NHL domain (avoids ERR_NAME_NOT_RESOLVED)
+app.get('/api/nhl-standings-proxy', async (req, res) => {
+  const nhlUrl = 'https://statsapi.web.nhl.com/api/v1/standings';
+  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(nhlUrl)}`;
+  try {
+    const proxyRes = await fetch(proxyUrl, { headers: { Accept: 'application/json' } });
+    if (!proxyRes.ok) throw new Error(`Proxy returned ${proxyRes.status}`);
+    const data = await proxyRes.json();
+    res.json(data);
+  } catch (e) {
+    console.error('NHL standings proxy error:', e.message);
+    res.status(502).json({ error: 'Could not load NHL standings', details: e.message });
+  }
+});
+
 // Database initialization endpoint (for production setup)
 const initDbHandler = async (req, res) => {
   try {
