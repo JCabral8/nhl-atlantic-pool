@@ -247,19 +247,24 @@ const AdminPage = () => {
     }
   };
 
+  // Proxy-only: browser never resolves NHL host (avoids ERR_NAME_NOT_RESOLVED on some networks)
   const fetchNHLStandings = async () => {
-    const url = 'https://statsapi.web.nhl.com/api/v1/standings';
-    try {
-      const res = await fetch(url, { headers: { Accept: 'application/json' } });
-      if (!res.ok) throw new Error(`NHL API returned ${res.status}`);
-      return await res.json();
-    } catch (e) {
-      // Fallback: some networks can't resolve NHL API; try CORS proxy
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-      const res = await fetch(proxyUrl);
-      if (!res.ok) throw new Error(`Standings fetch failed: ${res.status}`);
-      return await res.json();
+    const nhlUrl = 'https://statsapi.web.nhl.com/api/v1/standings';
+    const proxies = [
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(nhlUrl)}`,
+      `https://corsproxy.io/?${encodeURIComponent(nhlUrl)}`,
+    ];
+    let lastErr;
+    for (const url of proxies) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`${res.status}`);
+        return await res.json();
+      } catch (e) {
+        lastErr = e;
+      }
     }
+    throw lastErr || new Error('Could not load standings');
   };
 
   const handleUpdateStandings = async () => {
