@@ -1,36 +1,61 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Atlantic Pool standings site
 
-## Getting Started
+Single-page Next.js app to track:
 
-First, run the development server:
+- Live-ish NHL Atlantic standings
+- Justin / Chris / Nick preseason picks
+- Pool scoring (exact rank = 3, off by 1 = 1, off by 2+ = 0)
+- Leaderboard totals (max 24)
+
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## How data refresh works (foolproof default)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This app fetches standings server-side from:
 
-## Learn More
+- `https://api-web.nhle.com/v1/standings/now`
 
-To learn more about Next.js, take a look at the following resources:
+The fetch uses Next.js time-based cache revalidation once per day:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `revalidate = 86400` seconds
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Why this is reliable:
 
-## Deploy on Vercel
+- No browser CORS problems (server-side fetch, not client fetch)
+- No cron job required for normal daily updates
+- If live fetch fails, app falls back to a built-in snapshot dataset
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Where to edit picks
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Player picks and scoring are in:
+
+- `src/lib/pool.ts`
+
+## Optional snapshot JSON workflow
+
+If you want zero runtime API dependency, you can add a manual file:
+
+- `public/standings.snapshot.json`
+
+Then adjust `src/lib/standings.ts` to read that file first (or as fallback). Update it manually and redeploy.
+
+## Vercel deploy
+
+1. Push this project to GitHub.
+2. Import repo into Vercel as a Next.js project.
+3. Deploy.
+
+No env vars are required for current setup.
+
+## Common pitfalls (and fixes)
+
+- CORS errors: happen when fetching NHL API from the browser. Fix by fetching only on server.
+- Cron not firing: often wrong URL, protected endpoint, missing auth, or wrong branch/env target.
+- Random stale data confusion: remember revalidate refreshes after cache expiry and next request.
