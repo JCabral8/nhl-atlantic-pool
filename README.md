@@ -49,10 +49,16 @@ Then adjust `src/lib/standings.ts` to read that file first (or as fallback). Upd
 ## Vercel deploy
 
 1. Push this project to GitHub.
-2. Import repo into Vercel as a Next.js project.
-3. Deploy.
+2. Import repo into Vercel (or connect the existing project).
+3. **Project Settings → General → Build & Development Settings**
+   - **Framework Preset:** Next.js (default).
+   - **Root Directory:** leave empty if `package.json` is at the repo root.
+   - **Output Directory:** leave **empty**. Do **not** use `dist` or `out` — that was for older static setups. Next.js deploys from `.next` automatically; if you see “No Output Directory named dist”, clear this field and save.
+4. Deploy.
 
 No env vars are required for current setup.
+
+This repo includes [`vercel.json`](vercel.json) to pin the Next.js framework and build commands.
 
 ## Common pitfalls (and fixes)
 
