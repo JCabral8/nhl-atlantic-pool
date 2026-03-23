@@ -90,14 +90,74 @@ export default async function Home() {
         </section>
 
         <section className="panel panel-accent-top overflow-hidden rounded-2xl">
-          <div className="overflow-x-auto">
+          {/* Mobile: stacked cards — all three players visible without horizontal scroll */}
+          <div className="md:hidden">
+            <div className="divide-y divide-[var(--border)]">
+              {rowsByActualRank.map((row, rowIdx) => {
+                const standing = standings.find((item) => item.rank === row.actualRank);
+                if (!standing) return null;
+
+                return (
+                  <article
+                    key={standing.teamAbbrev}
+                    className={`px-4 py-4 ${rowIdx % 2 === 1 ? "bg-white/[0.02]" : ""}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="font-display shrink-0 text-3xl tabular-nums leading-none text-white">
+                        {standing.rank}
+                      </span>
+                      <TeamLogo
+                        abbrev={standing.teamAbbrev}
+                        teamName={standing.teamName}
+                        size={48}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-body text-base font-semibold leading-tight text-white">
+                          {standing.teamName}
+                        </h3>
+                        <p className="text-xs text-[var(--muted)]">{standing.teamAbbrev}</p>
+                        <p className="font-body mt-2 text-sm tabular-nums text-[var(--muted)]">
+                          {formatRecord(standing.wins, standing.losses, standing.otLosses)} ·{" "}
+                          <span className="font-bold text-white">{standing.points ?? "—"}</span> PTS
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-2">
+                      {row.cells.map((cell) => (
+                        <div
+                          key={cell.player}
+                          className="rounded-lg border border-[var(--border)] bg-black/25 px-2 py-2 text-center"
+                        >
+                          <p className="font-display text-[10px] font-normal uppercase tracking-wider text-[var(--accent-ice)]">
+                            {cell.player}
+                          </p>
+                          <p className="font-display mt-1 text-xl tabular-nums text-white">
+                            #{cell.predictedRank}
+                          </p>
+                          <span
+                            className={`mt-1 inline-block rounded-md border px-1.5 py-0.5 text-[10px] font-semibold leading-none ${pointsChipClass(cell.points)}`}
+                          >
+                            {cell.points} pts
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Desktop / tablet: full table */}
+          <div className="hidden overflow-x-auto md:block">
             <table className="font-body min-w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b border-[var(--border)] bg-black/25 text-left">
-                  <th className="sticky left-0 z-10 whitespace-nowrap bg-[#0a101c]/95 px-3 py-3 pl-4 text-xs font-bold uppercase tracking-wider text-[var(--accent-ice)] backdrop-blur-sm sm:static sm:bg-transparent sm:backdrop-blur-none">
+                  <th className="whitespace-nowrap px-3 py-3 pl-4 text-xs font-bold uppercase tracking-wider text-[var(--accent-ice)]">
                     Rank
                   </th>
-                  <th className="sticky left-12 z-10 min-w-[200px] bg-[#0a101c]/95 px-3 py-3 text-xs font-bold uppercase tracking-wider text-[var(--accent-ice)] backdrop-blur-sm sm:static sm:bg-transparent sm:backdrop-blur-none">
+                  <th className="min-w-[200px] px-3 py-3 text-xs font-bold uppercase tracking-wider text-[var(--accent-ice)]">
                     Team
                   </th>
                   <th className="whitespace-nowrap px-3 py-3 text-xs font-bold uppercase tracking-wider text-[var(--accent-ice)]">
@@ -128,12 +188,12 @@ export default async function Home() {
                         rowIdx % 2 === 1 ? "bg-white/[0.02]" : ""
                       }`}
                     >
-                      <td className="sticky left-0 z-10 bg-[#0a101c]/95 px-3 py-3 pl-4 backdrop-blur-sm sm:static sm:bg-transparent sm:backdrop-blur-none">
+                      <td className="px-3 py-3 pl-4">
                         <span className="font-display text-2xl tabular-nums text-white">
                           {standing.rank}
                         </span>
                       </td>
-                      <td className="sticky left-12 z-10 min-w-[200px] bg-[#0a101c]/95 px-3 py-3 backdrop-blur-sm sm:static sm:bg-transparent sm:backdrop-blur-none">
+                      <td className="min-w-[200px] px-3 py-3">
                         <div className="flex items-center gap-3">
                           <TeamLogo
                             abbrev={standing.teamAbbrev}
