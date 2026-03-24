@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { PLAYERS, scorePool } from "@/src/lib/pool";
 import { getTeamLogoUrl } from "@/src/lib/teamLogos";
 import { getAtlanticStandings } from "@/src/lib/standings";
@@ -55,6 +56,14 @@ export default async function Home() {
     <div className="min-h-full pb-12">
       <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
         <header className="panel panel-accent-top mb-6 rounded-2xl p-6 sm:p-8">
+          <div className="mb-3 flex justify-end">
+            <Link
+              href="/history"
+              className="rounded-md border border-[var(--border)] bg-black/25 px-3 py-2 text-xs text-white transition-colors hover:border-[var(--border-accent)]"
+            >
+              View history
+            </Link>
+          </div>
           <p className="font-display text-sm font-normal uppercase tracking-[0.28em] text-[var(--accent-ice)]">
             NHL Atlantic Pool
           </p>

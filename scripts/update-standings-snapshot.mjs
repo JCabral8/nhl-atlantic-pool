@@ -1,9 +1,11 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
 const NHL_STANDINGS_URL = "https://api-web.nhle.com/v1/standings/now";
 const ATLANTIC_TEAMS = new Set(["BOS", "BUF", "DET", "FLA", "MTL", "OTT", "TBL", "TOR"]);
+const SNAPSHOT_PATH = path.join(process.cwd(), "public", "standings.snapshot.json");
+const HISTORY_PATH = path.join(process.cwd(), "public", "standings.history.json");
 
 function asNumber(value) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -78,15 +80,35 @@ async function fetchAtlanticStandings() {
 
 async function main() {
   const standings = await fetchAtlanticStandings();
+  const updatedAt = new Date().toISOString();
   const snapshot = {
-    updatedAt: new Date().toISOString(),
+    updatedAt,
     source: "api-web.nhle.com",
     standings,
   };
 
-  const outputPath = path.join(process.cwd(), "public", "standings.snapshot.json");
-  await writeFile(outputPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
-  console.log(`Wrote standings snapshot to ${outputPath}`);
+  await writeFile(SNAPSHOT_PATH, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
+  console.log(`Wrote standings snapshot to ${SNAPSHOT_PATH}`);
+
+  const dateKey = updatedAt.slice(0, 10);
+  let existingHistory = [];
+  try {
+    const rawHistory = await readFile(HISTORY_PATH, "utf8");
+    const parsed = JSON.parse(rawHistory);
+    existingHistory = Array.isArray(parsed.entries) ? parsed.entries : [];
+  } catch {
+    existingHistory = [];
+  }
+
+  const byDate = new Map();
+  for (const entry of existingHistory) {
+    if (entry?.date) byDate.set(entry.date, entry);
+  }
+  byDate.set(dateKey, { date: dateKey, updatedAt, standings });
+
+  const mergedEntries = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+  await writeFile(HISTORY_PATH, `${JSON.stringify({ entries: mergedEntries }, null, 2)}\n`, "utf8");
+  console.log(`Upserted daily standings history in ${HISTORY_PATH}`);
 }
 
 main().catch((error) => {
