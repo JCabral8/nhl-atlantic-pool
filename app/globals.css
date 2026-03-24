@@ -50,3 +50,16 @@ body {
     drop-shadow(0 0 12px rgba(200, 230, 255, 0.45))
     drop-shadow(0 0 20px rgba(150, 190, 255, 0.2));
 }
+
+/* /history charts: proportional height on small screens; fixed tile on sm+ */
+.history-chart-frame {
+  width: 100%;
+  aspect-ratio: var(--history-chart-ar, 640 / 280);
+}
+
+@media (min-width: 640px) {
+  .history-chart-frame {
+    aspect-ratio: auto;
+    height: 20rem; /* h-80 */
+  }
+}
