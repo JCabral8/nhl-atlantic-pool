@@ -16,21 +16,25 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-## How data refresh works (foolproof default)
+## How data refresh works (8:00 AM ET daily)
 
-This app fetches standings server-side from:
+This app uses a snapshot-first approach:
 
-- `https://api-web.nhle.com/v1/standings/now`
+- Primary: `public/standings.snapshot.json` (updated by GitHub Actions)
+- Fallback: live fetch from `https://api-web.nhle.com/v1/standings/now`
+- Final fallback: built-in seed snapshot in `src/lib/standings.ts`
 
-The fetch uses Next.js time-based cache revalidation once per day:
+Scheduled updates are driven by:
 
-- `revalidate = 86400` seconds
+- `.github/workflows/standings-refresh.yml`
+- Runs hourly but only proceeds when ET hour is `08` (handles DST via `America/New_York`)
+- You can also trigger it manually with **Run workflow** in GitHub Actions
 
 Why this is reliable:
 
 - No browser CORS problems (server-side fetch, not client fetch)
-- No cron job required for normal daily updates
-- If live fetch fails, app falls back to a built-in snapshot dataset
+- Exact daily clock target in ET for publishing updates
+- Snapshot is committed to `main`, which triggers a Vercel deploy
 
 ## Where to edit picks
 
@@ -38,13 +42,17 @@ Player picks and scoring are in:
 
 - `src/lib/pool.ts`
 
-## Optional snapshot JSON workflow
+## Snapshot workflow details
 
-If you want zero runtime API dependency, you can add a manual file:
+Snapshot file path:
 
 - `public/standings.snapshot.json`
 
-Then adjust `src/lib/standings.ts` to read that file first (or as fallback). Update it manually and redeploy.
+Local updater script:
+
+- `node scripts/update-standings-snapshot.mjs`
+
+GitHub Actions uses that script to rewrite the file and commit only when data changed.
 
 ## Vercel deploy
 
@@ -63,5 +71,5 @@ This repo includes [`vercel.json`](vercel.json) to pin the Next.js framework and
 ## Common pitfalls (and fixes)
 
 - CORS errors: happen when fetching NHL API from the browser. Fix by fetching only on server.
-- Cron not firing: often wrong URL, protected endpoint, missing auth, or wrong branch/env target.
+- GitHub Actions scheduler not updating: confirm Actions are enabled for the repo and check `standings-refresh.yml` run logs.
 - Random stale data confusion: remember revalidate refreshes after cache expiry and next request.

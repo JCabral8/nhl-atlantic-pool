@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 const NHL_STANDINGS_URL = "https://api-web.nhle.com/v1/standings/now";
 
 export const REVALIDATE_SECONDS = 60 * 60 * 24; // daily refresh
@@ -25,6 +28,11 @@ export type AtlanticStanding = {
 };
 
 type StandingsResponse = {
+  standings?: unknown[];
+};
+
+type SnapshotResponse = {
+  updatedAt?: unknown;
   standings?: unknown[];
 };
 
@@ -100,7 +108,46 @@ const SNAPSHOT_STANDINGS: AtlanticStanding[] = [
   { rank: 8, teamAbbrev: "BUF", teamName: "Buffalo Sabres", points: 28, wins: 12, losses: 14, otLosses: 4, gamesPlayed: 30 },
 ];
 
+function isValidStanding(row: unknown): row is AtlanticStanding {
+  if (!row || typeof row !== "object") return false;
+  const candidate = row as Record<string, unknown>;
+  const teamAbbrev = asString(candidate.teamAbbrev);
+  const teamName = asString(candidate.teamName);
+  const rank = asNumber(candidate.rank);
+  return (
+    teamAbbrev !== null &&
+    teamName !== null &&
+    rank !== null &&
+    ATLANTIC_TEAM_ABBREVS.has(teamAbbrev)
+  );
+}
+
+async function readSnapshotFromFile(): Promise<StandingsPayload | null> {
+  try {
+    const snapshotPath = path.join(process.cwd(), "public", "standings.snapshot.json");
+    const raw = await readFile(snapshotPath, "utf8");
+    const parsed = JSON.parse(raw) as SnapshotResponse;
+    const standings = (parsed.standings ?? []).filter(isValidStanding);
+    if (standings.length !== 8) {
+      return null;
+    }
+
+    return {
+      standings: normalizeRankOrder(standings),
+      source: "snapshot",
+      fetchedAt: asString(parsed.updatedAt) ?? new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getAtlanticStandings(): Promise<StandingsPayload> {
+  const snapshotFromFile = await readSnapshotFromFile();
+  if (snapshotFromFile) {
+    return snapshotFromFile;
+  }
+
   try {
     const response = await fetch(NHL_STANDINGS_URL, {
       next: { revalidate: REVALIDATE_SECONDS },
