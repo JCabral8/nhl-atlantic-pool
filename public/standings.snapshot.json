@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-03-26T13:14:05.357Z",
+  "updatedAt": "2026-03-27T12:57:15.371Z",
   "source": "api-web.nhle.com",
   "standings": [
     {
@@ -16,21 +16,21 @@
       "rank": 2,
       "teamAbbrev": "TBL",
       "teamName": "Tampa Bay Lightning",
-      "points": 93,
+      "points": 94,
       "wins": 44,
       "losses": 21,
-      "otLosses": 5,
-      "gamesPlayed": 70
+      "otLosses": 6,
+      "gamesPlayed": 71
     },
     {
       "rank": 3,
       "teamAbbrev": "MTL",
       "teamName": "Montréal Canadiens",
-      "points": 88,
-      "wins": 39,
+      "points": 90,
+      "wins": 40,
       "losses": 21,
       "otLosses": 10,
-      "gamesPlayed": 70
+      "gamesPlayed": 71
     },
     {
       "rank": 4,
@@ -46,11 +46,11 @@
       "rank": 5,
       "teamAbbrev": "OTT",
       "teamName": "Ottawa Senators",
-      "points": 85,
+      "points": 86,
       "wins": 38,
       "losses": 24,
-      "otLosses": 9,
-      "gamesPlayed": 71
+      "otLosses": 10,
+      "gamesPlayed": 72
     },
     {
       "rank": 6,
@@ -78,9 +78,9 @@
       "teamName": "Florida Panthers",
       "points": 73,
       "wins": 35,
-      "losses": 32,
+      "losses": 33,
       "otLosses": 3,
-      "gamesPlayed": 70
+      "gamesPlayed": 71
     }
   ]
 }
