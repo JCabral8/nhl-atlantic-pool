@@ -1,36 +1,36 @@
 {
-  "updatedAt": "2026-04-04T12:44:53.272Z",
+  "updatedAt": "2026-04-05T12:49:45.041Z",
   "source": "api-web.nhle.com",
   "standings": [
     {
       "rank": 1,
       "teamAbbrev": "TBL",
       "teamName": "Tampa Bay Lightning",
-      "points": 100,
-      "wins": 47,
+      "points": 102,
+      "wins": 48,
       "losses": 22,
       "otLosses": 6,
-      "gamesPlayed": 75
+      "gamesPlayed": 76
     },
     {
       "rank": 2,
-      "teamAbbrev": "BUF",
-      "teamName": "Buffalo Sabres",
+      "teamAbbrev": "MTL",
+      "teamName": "Montréal Canadiens",
       "points": 100,
-      "wins": 46,
-      "losses": 22,
-      "otLosses": 8,
+      "wins": 45,
+      "losses": 21,
+      "otLosses": 10,
       "gamesPlayed": 76
     },
     {
       "rank": 3,
-      "teamAbbrev": "MTL",
-      "teamName": "Montréal Canadiens",
-      "points": 98,
-      "wins": 44,
-      "losses": 21,
-      "otLosses": 10,
-      "gamesPlayed": 75
+      "teamAbbrev": "BUF",
+      "teamName": "Buffalo Sabres",
+      "points": 100,
+      "wins": 46,
+      "losses": 23,
+      "otLosses": 8,
+      "gamesPlayed": 77
     },
     {
       "rank": 4,
@@ -38,9 +38,9 @@
       "teamName": "Boston Bruins",
       "points": 94,
       "wins": 43,
-      "losses": 25,
+      "losses": 26,
       "otLosses": 8,
-      "gamesPlayed": 76
+      "gamesPlayed": 77
     },
     {
       "rank": 5,
@@ -48,9 +48,9 @@
       "teamName": "Ottawa Senators",
       "points": 88,
       "wins": 39,
-      "losses": 26,
+      "losses": 27,
       "otLosses": 10,
-      "gamesPlayed": 75
+      "gamesPlayed": 76
     },
     {
       "rank": 6,
@@ -58,28 +58,28 @@
       "teamName": "Detroit Red Wings",
       "points": 88,
       "wins": 40,
-      "losses": 27,
+      "losses": 28,
       "otLosses": 8,
-      "gamesPlayed": 75
+      "gamesPlayed": 76
     },
     {
       "rank": 7,
+      "teamAbbrev": "TOR",
+      "teamName": "Toronto Maple Leafs",
+      "points": 78,
+      "wins": 32,
+      "losses": 31,
+      "otLosses": 14,
+      "gamesPlayed": 77
+    },
+    {
+      "rank": 8,
       "teamAbbrev": "FLA",
       "teamName": "Florida Panthers",
       "points": 77,
       "wins": 37,
-      "losses": 35,
+      "losses": 36,
       "otLosses": 3,
-      "gamesPlayed": 75
-    },
-    {
-      "rank": 8,
-      "teamAbbrev": "TOR",
-      "teamName": "Toronto Maple Leafs",
-      "points": 77,
-      "wins": 32,
-      "losses": 31,
-      "otLosses": 13,
       "gamesPlayed": 76
     }
   ]
