@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-05T12:49:45.041Z",
+  "updatedAt": "2026-04-07T19:46:39.829Z",
   "source": "api-web.nhle.com",
   "standings": [
     {
@@ -8,49 +8,49 @@
       "teamName": "Tampa Bay Lightning",
       "points": 102,
       "wins": 48,
-      "losses": 22,
+      "losses": 23,
       "otLosses": 6,
-      "gamesPlayed": 76
+      "gamesPlayed": 77
     },
     {
       "rank": 2,
+      "teamAbbrev": "BUF",
+      "teamName": "Buffalo Sabres",
+      "points": 102,
+      "wins": 47,
+      "losses": 23,
+      "otLosses": 8,
+      "gamesPlayed": 78
+    },
+    {
+      "rank": 3,
       "teamAbbrev": "MTL",
       "teamName": "Montréal Canadiens",
       "points": 100,
       "wins": 45,
-      "losses": 21,
+      "losses": 22,
       "otLosses": 10,
-      "gamesPlayed": 76
-    },
-    {
-      "rank": 3,
-      "teamAbbrev": "BUF",
-      "teamName": "Buffalo Sabres",
-      "points": 100,
-      "wins": 46,
-      "losses": 23,
-      "otLosses": 8,
       "gamesPlayed": 77
     },
     {
       "rank": 4,
       "teamAbbrev": "BOS",
       "teamName": "Boston Bruins",
-      "points": 94,
+      "points": 95,
       "wins": 43,
       "losses": 26,
-      "otLosses": 8,
-      "gamesPlayed": 77
+      "otLosses": 9,
+      "gamesPlayed": 78
     },
     {
       "rank": 5,
       "teamAbbrev": "OTT",
       "teamName": "Ottawa Senators",
-      "points": 88,
-      "wins": 39,
+      "points": 90,
+      "wins": 40,
       "losses": 27,
       "otLosses": 10,
-      "gamesPlayed": 76
+      "gamesPlayed": 77
     },
     {
       "rank": 6,
@@ -58,9 +58,9 @@
       "teamName": "Detroit Red Wings",
       "points": 88,
       "wins": 40,
-      "losses": 28,
+      "losses": 29,
       "otLosses": 8,
-      "gamesPlayed": 76
+      "gamesPlayed": 77
     },
     {
       "rank": 7,
@@ -78,9 +78,9 @@
       "teamName": "Florida Panthers",
       "points": 77,
       "wins": 37,
-      "losses": 36,
+      "losses": 37,
       "otLosses": 3,
-      "gamesPlayed": 76
+      "gamesPlayed": 77
     }
   ]
 }
