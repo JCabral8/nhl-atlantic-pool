@@ -15393,6 +15393,92 @@
           "gamesPlayed": 77
         }
       ]
+    },
+    {
+      "date": "2026-04-09",
+      "updatedAt": "2026-04-09T13:36:16.780Z",
+      "standings": [
+        {
+          "rank": 1,
+          "teamAbbrev": "BUF",
+          "teamName": "Buffalo Sabres",
+          "points": 104,
+          "wins": 48,
+          "losses": 23,
+          "otLosses": 8,
+          "gamesPlayed": 79
+        },
+        {
+          "rank": 2,
+          "teamAbbrev": "TBL",
+          "teamName": "Tampa Bay Lightning",
+          "points": 102,
+          "wins": 48,
+          "losses": 24,
+          "otLosses": 6,
+          "gamesPlayed": 78
+        },
+        {
+          "rank": 3,
+          "teamAbbrev": "MTL",
+          "teamName": "Montréal Canadiens",
+          "points": 102,
+          "wins": 46,
+          "losses": 22,
+          "otLosses": 10,
+          "gamesPlayed": 78
+        },
+        {
+          "rank": 4,
+          "teamAbbrev": "BOS",
+          "teamName": "Boston Bruins",
+          "points": 96,
+          "wins": 43,
+          "losses": 26,
+          "otLosses": 10,
+          "gamesPlayed": 79
+        },
+        {
+          "rank": 5,
+          "teamAbbrev": "OTT",
+          "teamName": "Ottawa Senators",
+          "points": 92,
+          "wins": 41,
+          "losses": 27,
+          "otLosses": 10,
+          "gamesPlayed": 78
+        },
+        {
+          "rank": 6,
+          "teamAbbrev": "DET",
+          "teamName": "Detroit Red Wings",
+          "points": 89,
+          "wins": 40,
+          "losses": 29,
+          "otLosses": 9,
+          "gamesPlayed": 78
+        },
+        {
+          "rank": 7,
+          "teamAbbrev": "FLA",
+          "teamName": "Florida Panthers",
+          "points": 78,
+          "wins": 37,
+          "losses": 37,
+          "otLosses": 4,
+          "gamesPlayed": 78
+        },
+        {
+          "rank": 8,
+          "teamAbbrev": "TOR",
+          "teamName": "Toronto Maple Leafs",
+          "points": 78,
+          "wins": 32,
+          "losses": 32,
+          "otLosses": 14,
+          "gamesPlayed": 78
+        }
+      ]
     }
   ]
 }
