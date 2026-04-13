@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-12T13:26:43.597Z",
+  "updatedAt": "2026-04-13T15:25:45.270Z",
   "source": "api-web.nhle.com",
   "standings": [
     {
@@ -14,6 +14,16 @@
     },
     {
       "rank": 2,
+      "teamAbbrev": "MTL",
+      "teamName": "Montréal Canadiens",
+      "points": 106,
+      "wins": 48,
+      "losses": 23,
+      "otLosses": 10,
+      "gamesPlayed": 81
+    },
+    {
+      "rank": 3,
       "teamAbbrev": "TBL",
       "teamName": "Tampa Bay Lightning",
       "points": 104,
@@ -23,34 +33,24 @@
       "gamesPlayed": 80
     },
     {
-      "rank": 3,
-      "teamAbbrev": "MTL",
-      "teamName": "Montréal Canadiens",
-      "points": 104,
-      "wins": 47,
-      "losses": 23,
-      "otLosses": 10,
-      "gamesPlayed": 80
-    },
-    {
       "rank": 4,
-      "teamAbbrev": "OTT",
-      "teamName": "Ottawa Senators",
-      "points": 96,
-      "wins": 43,
+      "teamAbbrev": "BOS",
+      "teamName": "Boston Bruins",
+      "points": 98,
+      "wins": 44,
       "losses": 27,
       "otLosses": 10,
-      "gamesPlayed": 80
+      "gamesPlayed": 81
     },
     {
       "rank": 5,
-      "teamAbbrev": "BOS",
-      "teamName": "Boston Bruins",
-      "points": 96,
+      "teamAbbrev": "OTT",
+      "teamName": "Ottawa Senators",
+      "points": 97,
       "wins": 43,
       "losses": 27,
-      "otLosses": 10,
-      "gamesPlayed": 80
+      "otLosses": 11,
+      "gamesPlayed": 81
     },
     {
       "rank": 6,
