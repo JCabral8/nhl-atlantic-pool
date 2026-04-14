@@ -1,19 +1,29 @@
 {
-  "updatedAt": "2026-04-13T15:25:45.270Z",
+  "updatedAt": "2026-04-14T12:02:15.240Z",
   "source": "api-web.nhle.com",
   "standings": [
     {
       "rank": 1,
       "teamAbbrev": "BUF",
       "teamName": "Buffalo Sabres",
-      "points": 106,
-      "wins": 49,
+      "points": 108,
+      "wins": 50,
       "losses": 23,
       "otLosses": 8,
-      "gamesPlayed": 80
+      "gamesPlayed": 81
     },
     {
       "rank": 2,
+      "teamAbbrev": "TBL",
+      "teamName": "Tampa Bay Lightning",
+      "points": 106,
+      "wins": 50,
+      "losses": 25,
+      "otLosses": 6,
+      "gamesPlayed": 81
+    },
+    {
+      "rank": 3,
       "teamAbbrev": "MTL",
       "teamName": "Montréal Canadiens",
       "points": 106,
@@ -21,16 +31,6 @@
       "losses": 23,
       "otLosses": 10,
       "gamesPlayed": 81
-    },
-    {
-      "rank": 3,
-      "teamAbbrev": "TBL",
-      "teamName": "Tampa Bay Lightning",
-      "points": 104,
-      "wins": 49,
-      "losses": 25,
-      "otLosses": 6,
-      "gamesPlayed": 80
     },
     {
       "rank": 4,
@@ -56,21 +56,21 @@
       "rank": 6,
       "teamAbbrev": "DET",
       "teamName": "Detroit Red Wings",
-      "points": 91,
+      "points": 92,
       "wins": 41,
       "losses": 30,
-      "otLosses": 9,
-      "gamesPlayed": 80
+      "otLosses": 10,
+      "gamesPlayed": 81
     },
     {
       "rank": 7,
       "teamAbbrev": "FLA",
       "teamName": "Florida Panthers",
-      "points": 80,
-      "wins": 38,
+      "points": 82,
+      "wins": 39,
       "losses": 38,
       "otLosses": 4,
-      "gamesPlayed": 80
+      "gamesPlayed": 81
     },
     {
       "rank": 8,
@@ -78,9 +78,9 @@
       "teamName": "Toronto Maple Leafs",
       "points": 78,
       "wins": 32,
-      "losses": 34,
+      "losses": 35,
       "otLosses": 14,
-      "gamesPlayed": 80
+      "gamesPlayed": 81
     }
   ]
 }
