@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-14T12:02:15.240Z",
+  "updatedAt": "2026-04-15T13:33:22.158Z",
   "source": "api-web.nhle.com",
   "standings": [
     {
@@ -28,19 +28,19 @@
       "teamName": "Montréal Canadiens",
       "points": 106,
       "wins": 48,
-      "losses": 23,
+      "losses": 24,
       "otLosses": 10,
-      "gamesPlayed": 81
+      "gamesPlayed": 82
     },
     {
       "rank": 4,
       "teamAbbrev": "BOS",
       "teamName": "Boston Bruins",
-      "points": 98,
-      "wins": 44,
+      "points": 100,
+      "wins": 45,
       "losses": 27,
       "otLosses": 10,
-      "gamesPlayed": 81
+      "gamesPlayed": 82
     },
     {
       "rank": 5,
